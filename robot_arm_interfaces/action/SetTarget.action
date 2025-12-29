@@ -1,0 +1,8 @@
+#Goal
+geometry_msgs/Vector3 target
+---
+# Result
+geometry_msgs/Vector3 target_reached
+---
+# Feedback
+geometry_msgs/Vector3 curr_pos
