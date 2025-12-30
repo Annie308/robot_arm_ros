@@ -191,18 +191,19 @@ private:
 
 		using namespace std::placeholders;
 
-		auto get_angles_client = std::make_shared<GetAnglesClient>(rclcpp::NodeOptions(), *target, goal_type);
-		get_angles_client->get_angles();
+	
 
 		RCLCPP_INFO(this->get_logger(), "Target received: x: %f, y: %f, z: %f", 
 			target->x, target->y, target->z);
+
+		auto get_angles_client = std::make_shared<GetAnglesClient>(rclcpp::NodeOptions(), *target, goal_type);
+		goal_angles = get_angles_client->get_angles();
 
 		//if time out
 		if (!this->target_client_ptr_->wait_for_action_server()) {
 			RCLCPP_ERROR(this->get_logger(), "Action server not available after waiting");
 		}
 
-		//fetches the goal from ArmAngles.action
 		auto goal_msg = SetTarget::Goal();
 
         goal_msg.target_angles = goal_angles;
@@ -267,6 +268,8 @@ private:
 			for (auto res: result.result->angles_reached){
 				RCLCPP_INFO(this->get_logger(), "%f ", res);
 			}
+
+			rclcpp::shutdown();
 		};
 		
 		this->target_client_ptr_->async_send_goal(goal_msg, send_goal_options);
