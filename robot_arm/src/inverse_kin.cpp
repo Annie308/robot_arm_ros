@@ -11,6 +11,7 @@
 
 using namespace std::chrono_literals;
 using namespace std::placeholders;
+using InverseKin = robot_arm_interfaces::srv::InverseKin;
 
 //Make thise parameters!!!!
 //----------------------
@@ -81,7 +82,7 @@ static std::tuple<float,float,float> ik(float x, float y, float z) {
 	return std::make_tuple(t1, t2, t3);
 }
 
-static std::tuple<float,float,float> wristIk(float roll, float pitch, float yaw) {
+static std::tuple<float,float,float> wrist_ik(float roll, float pitch, float yaw) {
 
 	//getting desired rotation matrices
 	//roll about X
@@ -138,38 +139,49 @@ public:
 	2.A ROS 2 node to add the action client to: this.
 	3. The action name: 'arm_angles'.
 	*/
-    service_ptr_ = this->create_service<robot_arm_interfaces::srv::InverseKin>("arm_angles", 
-		std::bind(&IkServer::ik_res, this, _1, _2)
+    service_ptr_ = this->create_service<InverseKin>("target_arm_angles", 
+		std::bind(&IkServer::get_result, this, _1, _2)
 	);
 
-  	RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Ready to calculate arm angles.");
+  	RCLCPP_INFO(this->get_logger(), "Ready to calculate target joint angles.");
         
     }
 	
 private:
-  rclcpp::Service<robot_arm_interfaces::srv::InverseKin>::SharedPtr service_ptr_;
+  rclcpp::Service<InverseKin>::SharedPtr service_ptr_;
 
+  enum class GoalType {SET_ARM_POS, SET_WRIST_ROTATION};
 
-	void ik_res (const std::shared_ptr<robot_arm_interfaces::srv::InverseKin::Request> request,
-          std::shared_ptr<robot_arm_interfaces::srv::InverseKin::Response>      response)
-	{
+  void get_result(const std::shared_ptr<InverseKin::Request> request,std::shared_ptr<InverseKin::Response>response)
+  {
 		float x = request->target.x; 
 		float y = request->target.y; 
 		float z =request->target.z;
 
-		std::tuple<float,float,float> result = ik(x, y, z);
+		std::tuple<float,float,float> result;
+
+		if (request->mode == 0){			//arm ik
+			result = ik(x, y, z);
+			RCLCPP_INFO(this->get_logger(), "Incoming request for arm angles\n");
+			
+		}else if (request->mode ==1){		//wrist ik
+			result = wrist_ik(x, y, z);
+			RCLCPP_INFO(this->get_logger(), "Incoming request for wrist angles\n");
+		}else{
+			RCLCPP_ERROR(this->get_logger(), "Invalid mode selected");
+			return;
+		}
+		
+		RCLCPP_INFO(this->get_logger(), "x: %f\ny: %f\nz: %f",request->target.x,request->target.y,request->target.z);
+		RCLCPP_INFO(this->get_logger(), "Sending back %zu angles: ", response->angles.size());
+
+		for (size_t i=0; i< response->angles.size(); i++){
+			RCLCPP_INFO(this->get_logger(), "Theta %zu: %f rads...", i, response->angles[i]);
+		}
 		response->angles.push_back(std::get<0>(result));
 		response->angles.push_back(std::get<1>(result));
 		response->angles.push_back(std::get<2>(result));
-
-		RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Incoming request\n");
-		RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "x: %f\ny: %f\nz: %f",request->target.x,request->target.y,request->target.z);
-		RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Sending back %zu angles: ", response->angles.size());
-
-		for (size_t i=0; i< response->angles.size(); i++){
-			RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Theta %zu: %f rads...", i, response->angles[i]);
-		}
-	}
+  }	
 };
 
 

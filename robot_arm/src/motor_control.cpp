@@ -8,13 +8,16 @@
 #include <chrono>
 
 #include "rclcpp/rclcpp.hpp"
+#include "rclcpp_action/rclcpp_action.hpp"
+
 #include "std_msgs/msg/string.hpp"
 #include "geometry_msgs/msg/vector3.hpp"
+#include "std_msgs/msg/float32.hpp"
+
 #include "robot_arm_interfaces/srv/inverse_kin.hpp"
-#include "std_msgs/msg/float64.hpp"
 #include "robot_arm_interfaces/action/set_target.hpp"
 #include "robot_arm_interfaces/msg/joint_angles.hpp"
-#include "rclcpp_action/rclcpp_action.hpp"
+
 
 using namespace std::chrono_literals;
 using namespace std::placeholders;
@@ -33,7 +36,7 @@ public:
   MotorController(const rclcpp::NodeOptions & options= rclcpp::NodeOptions())
   : Node("motor_controller", options)
   {
-
+    RCLCPP_INFO(this->get_logger(), "Motors ready.");
       subscription_ptr_ = this->create_subscription<JointAngles>(
 		"gyro_arm_angles", 10, std::bind(&MotorController::topic_callback, this, _1));
 
@@ -70,7 +73,7 @@ public:
 
     this->action_server_ = rclcpp_action::create_server<SendPos>(
       this,
-      "set_target",
+      "set_position",
       handle_goal,
       handle_cancel,
       handle_accepted);
@@ -98,24 +101,24 @@ private:
       // Update sequence
     // Publish feedback --> from the gyro sensor
     auto feedback = std::make_shared<SendPos::Feedback>();
-    auto &pos_now = feedback->curr_pos;
+    auto &angles_now = feedback->curr_angles;
     auto result = std::make_shared<SendPos::Result>();
 
     // Check if there is a cancel request
     if (goal_handle->is_canceling()) {
-      result->target_reached = pos_now;
+      result->angles_reached = angles_now;
 
       goal_handle->canceled(result);
       RCLCPP_INFO(this->get_logger(), "Goal canceled");
       return;
     }
     
-      pos_now.x = 1.0f;
-      pos_now.y = 2.0f;
-      pos_now.z = 3.0f;
+     RCLCPP_INFO(this->get_logger(), "Publish arm feedback: ");
+      angles_now = {1.0f, 2.0f, 3.0f};
 
-      RCLCPP_INFO(this->get_logger(), "Publish arm feedback: angle 1: %lf\nangle 2:%lf \nangle3: %lf", 
-        feedback->curr_pos.x, feedback->curr_pos.y, feedback->curr_pos.z);
+      for (auto angle: angles_now){
+        RCLCPP_INFO(this->get_logger(), "%f ", angle);
+      }
 
       goal_handle->publish_feedback(feedback);
           
@@ -123,12 +126,13 @@ private:
 
       // Check if goal is done
       if (rclcpp::ok()) {
-        result->target_reached = pos_now;
+        result->angles_reached = angles_now;
 
         goal_handle->succeed(result);
         RCLCPP_INFO(this->get_logger(), "Goal succeeded! Arm angles: ");
-
-        RCLCPP_INFO(this->get_logger(), "%lf, %f, %lf", pos_now.x, pos_now.y, pos_now.z);
+        for (auto angle: result->angles_reached){
+          RCLCPP_INFO(this->get_logger(), "%lf", angle);
+        }
       }
     }
 };  

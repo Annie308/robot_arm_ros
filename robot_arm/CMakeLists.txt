@@ -18,7 +18,7 @@ find_package(rclcpp_action REQUIRED)
 add_executable(get_angles src/inverse_kin.cpp)
 add_executable(start_motors src/motor_control.cpp)
 add_executable(start_gyro src/gyro_sensor.cpp)
-add_executable(set_action src/user_input.cpp)
+add_executable(set_target src/set_target.cpp)
 
 target_include_directories(get_angles
   PUBLIC
@@ -37,7 +37,7 @@ target_include_directories(start_gyro
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>)
 
-target_include_directories(set_action
+target_include_directories(set_target
   PUBLIC
    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
@@ -47,14 +47,14 @@ install(TARGETS
   get_angles
   start_motors
   start_gyro
-  set_action
+  set_target
   DESTINATION lib/${PROJECT_NAME}
 )
 
 ament_target_dependencies(get_angles rclcpp std_msgs robot_arm_interfaces rclcpp_action) 
 ament_target_dependencies(start_motors rclcpp std_msgs robot_arm_interfaces rclcpp_action) 
 ament_target_dependencies(start_gyro rclcpp std_msgs robot_arm_interfaces)
-ament_target_dependencies(set_action rclcpp std_msgs robot_arm_interfaces rclcpp_action)
+ament_target_dependencies(set_target rclcpp std_msgs robot_arm_interfaces rclcpp_action)
 
 target_link_libraries(get_angles Eigen3::Eigen)
 
