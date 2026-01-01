@@ -7,6 +7,7 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "robot_arm_interfaces/srv/inverse_kin.hpp"
+#include "robot_arm_interfaces/msg/joint_angles.hpp"
 #include <Eigen/Dense>
 
 #include "arm_attributes.h"
@@ -14,11 +15,12 @@
 using namespace std::chrono_literals;
 using namespace std::placeholders;
 using InverseKin = robot_arm_interfaces::srv::InverseKin;
+using JointAngles = robot_arm_interfaces::msg::JointAngles;
 
 static std::tuple<float,float,float> ik(float x, float y, float z) {
 	Eigen::Vector3d p_target = Eigen::Vector3d(x, y, z);
 
-	p_target = p_target - link1 - link4 - link5_1 - link6;		
+	p_target = p_target - base_link- -link1- link4 - link6 - Eigen::Vector3d{l5, 0, 0};		
 
 	//angle away from XY plane
 	float t = atan2(p_target.z(), p_target.x());
@@ -123,12 +125,31 @@ public:
 		std::bind(&IkServer::get_result, this, _1, _2)
 	);
 
+	publisher_ptr_ = this->create_publisher<JointAngles>("gyro_arm_angles", 10);
+
+	auto publisher_timer_callback =
+      [this]() -> void {
+        auto message = robot_arm_interfaces::msg::JointAngles();
+        message.joint_angles = joint_angles;
+
+		RCLCPP_INFO(this->get_logger(), "Publishing:");
+		for (auto angle: message.joint_angles){
+        	RCLCPP_INFO(this->get_logger(), "%lf", angle);
+		}
+        this->publisher_ptr_->publish(message);
+      };
+
+    publisher_timer_ = this->create_wall_timer(50ms, publisher_timer_callback);
+
   	RCLCPP_INFO(this->get_logger(), "Ready to calculate target joint angles.");
         
     }
 	
 private:
   rclcpp::Service<InverseKin>::SharedPtr service_ptr_;
+  rclcpp::Publisher<JointAngles>::SharedPtr publisher_ptr_;
+  rclcpp::TimerBase::SharedPtr publisher_timer_;
+  std::vector<double> joint_angles;
 
   enum class GoalType {SET_ARM_POS, SET_WRIST_ROTATION};
 
@@ -160,7 +181,12 @@ private:
 
 		for (size_t i=0; i< response->angles.size(); i++){
 			RCLCPP_INFO(this->get_logger(), "Theta %zu: %f rads...", i, response->angles[i]);
+			joint_angles.push_back(static_cast<double>(response->angles[i]));
 		}
+
+		joint_angles.push_back(0);
+		joint_angles.push_back(0);
+		joint_angles.push_back(0);
 		
   }	
 };

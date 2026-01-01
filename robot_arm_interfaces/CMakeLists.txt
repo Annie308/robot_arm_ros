@@ -16,6 +16,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/JointPositions.msg"
   "srv/InverseKin.srv"
   "srv/SetClaw.srv"
+  "srv/GetJointAngles.srv"
   DEPENDENCIES geometry_msgs
 )
 ament_export_dependencies(rosidl_default_runtime)

@@ -19,7 +19,6 @@ find_package(tf2_geometry_msgs REQUIRED)
 #executables
 add_executable(inverse_kin src/inverse_kin.cpp)
 add_executable(start_motors src/motor_control.cpp)
-add_executable(start_gyro src/gyro_sensor.cpp)
 add_executable(set_target src/set_target.cpp)
 add_executable(get_pos src/forward_kin.cpp)
 add_executable(state_publisher src/state_publisher.cpp)
@@ -62,11 +61,6 @@ target_link_libraries(start_motors PUBLIC
     rclcpp::rclcpp
     rclcpp_action::rclcpp_action
   )
-target_link_libraries(start_gyro PUBLIC
-    ${robot_arm_interfaces_TARGETS}
-    ${std_msgs_TARGETS}
-    rclcpp::rclcpp
-  )
 target_link_libraries(set_target PUBLIC
     ${robot_arm_interfaces_TARGETS}
     ${std_msgs_TARGETS}
@@ -77,7 +71,6 @@ target_link_libraries(set_target PUBLIC
 install(TARGETS 
   inverse_kin
   start_motors
-  start_gyro
   set_target
   get_pos
   state_publisher

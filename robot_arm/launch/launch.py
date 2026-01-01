@@ -78,7 +78,8 @@ def generate_launch_description():
 
     return LaunchDescription([
         robot_state_publisher_node,
-        joint_state_publisher_gui_node,
+        # this thing messes with the state publisher sometimes
+             #joint_state_publisher_gui_node,           
         joint_state_publisher_node,
         set_target_node,
         start_gyro_node,
