@@ -17,10 +17,9 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 
 #executables
-add_executable(inverse_kin src/inverse_kin.cpp)
+add_executable(inverse_kin src/inverse_kin.cpp src/forward_kin.cpp)
 add_executable(start_motors src/motor_control.cpp)
 add_executable(set_target src/set_target.cpp)
-add_executable(get_pos src/forward_kin.cpp)
 add_executable(state_publisher src/state_publisher.cpp)
 
 target_link_libraries(state_publisher PUBLIC
@@ -32,12 +31,6 @@ target_link_libraries(state_publisher PUBLIC
   rclcpp::rclcpp
 )
 
-target_include_directories(get_pos
-  PUBLIC
-    include                 # your package headers
-    ${EIGEN3_INCLUDE_DIRS}  # Eigen headers
-)
-
 target_include_directories(inverse_kin
   PUBLIC
     include                 # your package headers
@@ -47,12 +40,6 @@ target_link_libraries(inverse_kin PUBLIC
     ${robot_arm_interfaces_TARGETS}
     ${std_msgs_TARGETS}
     Eigen3::Eigen 
-    rclcpp::rclcpp
-  )
-target_link_libraries(get_pos PUBLIC
-    ${robot_arm_interfaces_TARGETS}
-    ${std_msgs_TARGETS}
-    Eigen3::Eigen
     rclcpp::rclcpp
   )
 target_link_libraries(start_motors PUBLIC
@@ -72,7 +59,6 @@ install(TARGETS
   inverse_kin
   start_motors
   set_target
-  get_pos
   state_publisher
   DESTINATION lib/${PROJECT_NAME}
 )

@@ -35,7 +35,6 @@ class MotorController : public rclcpp::Node
 {
 public:
 
-
   MotorController(const rclcpp::NodeOptions & options= rclcpp::NodeOptions())
   : Node("motor_controller", options)
   {
@@ -140,7 +139,7 @@ private:
       angles_now = {1.0f, 2.0f, 3.0f};
 
       for (auto angle: angles_now){
-        RCLCPP_INFO(this->get_logger(), "%f ", angle);
+        RCLCPP_INFO(this->get_logger(), "%lf ", angle);
       }
 
       goal_handle->publish_feedback(feedback);

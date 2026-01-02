@@ -50,13 +50,6 @@ def generate_launch_description():
         prefix='xterm -hold -e',
     )
 
-    get_pos_node = Node(
-        package='robot_arm',
-        executable='get_pos',
-        name='forward_kin',
-        output='screen',
-    )
-
     get_angles_node = Node(
         package='robot_arm',
         executable='inverse_kin',
@@ -75,7 +68,6 @@ def generate_launch_description():
         #joint_state_publisher_gui_node,           
         joint_state_publisher_node,
         set_target_node,
-        get_pos_node,
         get_angles_node,
         start_motors_node,
         rviz_node

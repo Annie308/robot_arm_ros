@@ -37,7 +37,10 @@ class StatePublisher : public rclcpp::Node{
 
             auto subscriber_timer_callback =
             [this](){return std::bind(&StatePublisher::topic_callback, this,  std::placeholders::_1);};
-            subscription_timer_ = this->create_wall_timer(2000ms, subscriber_timer_callback);
+            subscription_timer_ = this->create_wall_timer(500ms, subscriber_timer_callback);
+
+            angles_vec.resize(6, 0.);
+            angles_rec.resize(6, 0.);
         }
 
         void publish();
@@ -45,7 +48,7 @@ class StatePublisher : public rclcpp::Node{
         void topic_callback(const JointAngles::SharedPtr msg){
             for (size_t i=0; i<msg->joint_angles.size(); i++){
                 RCLCPP_INFO(this->get_logger(), "Angles Recieved: '%lf'", msg->joint_angles[i]);
-                angles_rec = msg->joint_angles;
+                if (i < angles_rec.size()) { angles_rec[i] = msg->joint_angles[i]; }
             }
          }
     private:
@@ -57,10 +60,9 @@ class StatePublisher : public rclcpp::Node{
 	rclcpp::TimerBase::SharedPtr publisher_timer_;
 	rclcpp::TimerBase::SharedPtr subscription_timer_;
 
-    std::vector<double> angles_rec = {0., 0., 0., 0., 0., 0};
+    std::vector<double> angles_rec;
     const double degree=M_PI/180.0;
-    std::vector<double> angles_vec = {0., 0., 0., 0., 0., 0};
-
+    std::vector<double> angles_vec;
     double r1, r2, r3, r4, r5, r6; 
     
 };
@@ -76,7 +78,7 @@ void StatePublisher::publish(){
     // add time stamp
     joint_state.header.stamp=this->get_clock()->now();
     // Specify joints' name which are defined in the r2d2.urdf.xml and their content
-    joint_state.name={"base_to_link1", "link1_to_link2", "link2_to_link3", "link3_to_link4", "link4_to_link5", "connector2_to_link6"};
+    joint_state.name={"base_to_link1", "link1_to_link2", "link2_to_link3", "link3_to_link4", "link5_to_link6", "link6_to_end_eff"};
     joint_state.position={r1,r2,r3, r4, r5, r6};
 
     // add time stamp

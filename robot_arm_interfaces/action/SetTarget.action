@@ -1,8 +1,8 @@
 #Goal
-float32[] target_angles
+float64[] target_angles
 ---
 # Result
-float32[] angles_reached
+float64[] angles_reached
 ---
 # Feedback
-float32[] curr_angles
+float64[] curr_angles

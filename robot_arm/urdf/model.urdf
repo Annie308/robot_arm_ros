@@ -12,7 +12,7 @@
         <geometry>
         <cylinder radius="0.2" length=".5" />
         </geometry>
-        <material name="gray" />
+       
     </visual>
     </link>
 
@@ -27,7 +27,7 @@
         <geometry>
         <cylinder radius="0.1" length=".5" />
         </geometry>
-        <material name="gray" />
+       
     </visual>
   </link>
 
@@ -45,7 +45,7 @@
         <geometry>
         <cylinder radius="0.1" length=".5" />
         </geometry>
-        <material name="gray" />
+       
     </visual>
   </link>
 
@@ -64,7 +64,7 @@
         <cylinder radius="0.1" length=".5" />
         </geometry>
         <origin xyz="0.25 0 0" rpy="0 1.57 0" />
-        <material name="gray" />
+       
     </visual>
   </link>
 
@@ -82,7 +82,6 @@
         <cylinder radius="0.1" length=".5" />
         </geometry>
         <origin xyz="0.25 0 0" rpy="0 1.57 0" />
-        <material name="gray" />
     </visual>
   </link>
 
@@ -94,74 +93,35 @@
     <child link="link4"/>
   </joint>
 
-
   <link name="link5">
     <visual>
         <geometry>
-        <cylinder radius="0.1" length=".5" />
+        <cylinder radius="0.2" length=".4" />
         </geometry>
-        <origin xyz="0 0 0.25" rpy="0 0 0" />
-        <material name="gray" />
+        <origin xyz="0 0 0" rpy="1.57 0 0" />
     </visual>
   </link>
 
-  <joint name="link4_to_link5" type="revolute">
-    <axis xyz = "0 0 1"/>
-    <origin xyz="0.5 0 0" />
-    <limit effort="10" velocity="1" lower="-3.14" upper="3.14"/>
+  <joint name="link4_to_link5" type="fixed">
+    <origin xyz="0.1 0 0" />
     <parent link="link4"/>
     <child link="link5"/>
-  </joint>
-
-
-  <link name="l5_6_connector1">
-    <visual>
-        <geometry>
-        <cylinder radius="0.1" length=".5" />
-        </geometry>
-        <origin xyz="0.25 0 0" rpy="0 1.57 0" />
-        <material name="gray" />
-    </visual>
-  </link>
-
-  <joint name="link5_to_connector1" type="fixed">
-    <origin xyz="0 0 0.5"/>
-    <parent link="link5"/>
-    <child link="l5_6_connector1"/>
-  </joint>
-
-  
-  <link name="l5_6_connector2">
-    <visual>
-        <geometry>
-        <cylinder radius="0.1" length=".5" />
-        </geometry>
-        <origin xyz="0 0 -0.25" rpy="0 0 0" />
-        <material name="gray" />
-    </visual>
-  </link>
-
-  <joint name="connector1_to_connector2" type="fixed">
-    <origin xyz="0.5 0 0"/>
-    <parent link="l5_6_connector1"/>
-    <child link="l5_6_connector2"/>
   </joint>
 
   <link name="link6">
     <visual>
         <geometry>
-        <cylinder radius="0.1" length=".5" />
+        <cylinder radius="0.1" length=".3" />
         </geometry>
-        <origin xyz="0.25 0 0" rpy="0 1.57 0" />
-        <material name="gray" />
+        <origin xyz="0.15 0 0" rpy="0 1.57 0" />
     </visual>
   </link>
 
-  <joint name="connector2_to_link6" type="revolute">
+  <joint name="link5_to_link6" type="revolute">
     <axis xyz = "0 1 0"/>
-    <origin xyz="0 0 -0.5"/>
+    <origin xyz="0.3 0 0"/>
     <limit effort="10" velocity="1" lower="-3.14" upper="3.14"/>
-    <parent link="l5_6_connector2"/>
+    <parent link="link5"/>
     <child link="link6"/>
   </joint>
 
@@ -170,8 +130,10 @@
     </visual>
   </link>
 
-  <joint name="link6_to_end_eff" type ="fixed">
-    <origin xyz = "0.5 0 0"/>
+  <joint name="link6_to_end_eff" type ="revolute">
+     <axis xyz = "1 0 0"/>
+    <origin xyz = "0.3 0 0"/>
+     <limit effort="10" velocity="1" lower="-3.14" upper="3.14"/>
    <parent link="link6"/>
     <child link="end_effector"/>
   </joint>

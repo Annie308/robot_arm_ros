@@ -28,7 +28,7 @@ using GoalHandleTarget = rclcpp_action::ClientGoalHandle<SetTarget>;
 using InverseKin = robot_arm_interfaces::srv::InverseKin;
 using SetClaw = robot_arm_interfaces::srv::SetClaw;
 
-enum class GoalType {SET_ARM_POS, SET_WRIST_ROTATION, CLAMP_CLAW, RELEASE_CLAW};
+enum class GoalType {RELEASE_CLAW, CLAMP_CLAW, CONFIG_ARM};
 
 class SetParameter : public rclcpp::Node
 {
@@ -52,23 +52,27 @@ private:
 
 class ServiceClient : public rclcpp::Node{
 public:
-	 ServiceClient(const rclcpp::NodeOptions & options, geometry_msgs::msg::Vector3 target_, GoalType goal_type_) 
+	 ServiceClient(const rclcpp::NodeOptions & options, geometry_msgs::msg::Transform target_, GoalType goal_type_) 
     : Node("service_client", options),  target(target_), goal_type(goal_type_)
   {	
 		angles_client_ptr_ =this->create_client<InverseKin>("target_angles");
 		claw_client_ptr_ =this->create_client<SetClaw>("set_claw");	
 	}
 
-	std::optional<std::vector<float>> get_angles(){
+	std::optional<std::vector<double>> get_angles(){
 
 		auto request = std::make_shared<InverseKin::Request>();
-		request->target.x = target.x;
-		request->target.y = target.y;
-		request->target.z = target.z;
-		request->mode = static_cast<int>(goal_type);
+		request->target.translation.x = target.translation.x;
+		request->target.translation.y = target.translation.y;
+		request->target.translation.z = target.translation.z;
 
-		RCLCPP_INFO(this->get_logger(), "Sending inverse kin service request: %lf, %lf, %lf", 
-		request->target.x,  request->target.y, request->target.z);
+		request->target.rotation.x = target.rotation.x;
+		request->target.rotation.y = target.rotation.y;
+		request->target.rotation.z = target.rotation.z;
+
+		RCLCPP_INFO(this->get_logger(), "Sending inverse kin service request: %lf, %lf, %lf, %lf, %lf, %lf", 
+		request->target.translation.x,  request->target.translation.y, request->target.translation.z,
+		request->target.rotation.x, request->target.rotation.y, request->target.rotation.z);
 		
 		
         while (!angles_client_ptr_->wait_for_service(5s)) {
@@ -89,7 +93,7 @@ public:
            
 			RCLCPP_INFO(this->get_logger(), "Inverse kinematics response received: ");
 			for (auto angle: response){
-				RCLCPP_INFO(this->get_logger(), "%f ", angle);
+				RCLCPP_INFO(this->get_logger(), "%lf ", angle);
 			}
 			return response;
         } else {
@@ -147,7 +151,7 @@ public:
 		rclcpp::Client<InverseKin>::SharedPtr angles_client_ptr_;
 		rclcpp::Client<SetClaw>::SharedPtr claw_client_ptr_;
 		rclcpp::TimerBase::SharedPtr timer_;
-		geometry_msgs::msg::Vector3 target;
+		geometry_msgs::msg::Transform target;
 		GoalType goal_type;
 };
 
@@ -160,7 +164,7 @@ public:
   {	
 	target = get_user_input();
 		
-	if (goal_type == GoalType::SET_ARM_POS || goal_type == GoalType::SET_WRIST_ROTATION){
+	if (goal_type == GoalType::CONFIG_ARM){
 
 		//to set joint angles goal to motors
 		this->client_ptr_ = rclcpp_action::create_client<SetTarget>(
@@ -183,8 +187,8 @@ private:
 
 	rclcpp::TimerBase::SharedPtr timer_;
 
-	std::optional<std::vector<float>> goal_angles;
-	std::optional<geometry_msgs::msg::Vector3> target;
+	std::optional<std::vector<double>> goal_angles;
+	std::optional<geometry_msgs::msg::Transform> target;
 
 	GoalType goal_type;
 	int goal_type_param;
@@ -199,9 +203,12 @@ private:
 			return;
 		}
 
-		RCLCPP_INFO(this->get_logger(), "Target received: x: %f, y: %f, z: %f --> sending to inverse kinematics server.", 
-			target->x, target->y, target->z);
+		RCLCPP_INFO(this->get_logger(), "Target received: x: %lf, y: %lf, z: %lf", 
+			target->translation.x, target->translation.y, target->translation.z);
 
+		
+		RCLCPP_INFO(this->get_logger(), "Rotations received: x: %lf, y: %lf, z: %lf", 
+			target->rotation.x, target->rotation.y, target->rotation.z);
 		//fecthes angles by calling the inverse kinematics service
 		//to get joint angles from inverse kinematics server			(this looks kinda bad i shall fix later maybe)
 
@@ -228,7 +235,7 @@ private:
 		RCLCPP_INFO(this->get_logger(), "Sending target angles goal: ");
 
 		for (auto angle: goal_msg.target_angles){
-			RCLCPP_INFO(this->get_logger(), "%f ", angle);
+			RCLCPP_INFO(this->get_logger(), "%lf ", angle);
 		}
 
 		//configure what to do after sending the goal. Is sent to ROS to be managed later
@@ -253,7 +260,7 @@ private:
 			auto angles_now = feedback->curr_angles;
 			RCLCPP_INFO(this->get_logger(), "Current Position Recieved:"); 
 			for (size_t i=0; i< angles_now.size(); i++){
-				RCLCPP_INFO(this->get_logger(), "%f ", angles_now[i]);
+				RCLCPP_INFO(this->get_logger(), "%lf ", angles_now[i]);
 			}
 		};
 
@@ -277,7 +284,7 @@ private:
 			RCLCPP_INFO(this->get_logger(), "Result received:");
 			
 			for (auto res: result.result->angles_reached){
-				RCLCPP_INFO(this->get_logger(), "%f ", res);
+				RCLCPP_INFO(this->get_logger(), "%lf ", res);
 			}
 
 			rclcpp::shutdown();
@@ -286,15 +293,14 @@ private:
 		this->client_ptr_->async_send_goal(goal_msg, send_goal_options);
 	}
 
-	std::optional<geometry_msgs::msg::Vector3> get_user_input()
+	std::optional<geometry_msgs::msg::Transform> get_user_input()
 	{	
 		std::string set_goal_type;
-		geometry_msgs::msg::Vector3 target_;
+		geometry_msgs::msg::Transform target_;
 
 		RCLCPP_INFO(this->get_logger(),
 			"Enter separated by spaces:\n"
-			"(1) Set target arm pos\n"
-			"(2) Set target wrist rotation\n"
+			"(1) Configure arm\n"
 			"(3) Clamp claw\n"
 			"(4) Release claw >> ");
 		
@@ -308,18 +314,14 @@ private:
 		}     
 		switch(static_cast<int>(choice)){
 			case '1':
-				RCLCPP_INFO(this->get_logger(), "Request received: Set target arm pos");
-				goal_type = GoalType::SET_ARM_POS;
+				RCLCPP_INFO(this->get_logger(), "Request received: Configure arm");
+				goal_type = GoalType::CONFIG_ARM;
 				break;
 			case '2':
-				RCLCPP_INFO(this->get_logger(), "Request received: Set target wrist rotation");
-				goal_type = GoalType::SET_WRIST_ROTATION;
-				break;
-			case '3':
 				RCLCPP_INFO(this->get_logger(), "Request received: Clamp claw");
 				goal_type = GoalType::CLAMP_CLAW;
 				break;
-			case '4':
+			case '3':
 				RCLCPP_INFO(this->get_logger(), "Request received: Release claw");
 				goal_type = GoalType::RELEASE_CLAW;
 				break;
@@ -328,32 +330,44 @@ private:
 				return std::nullopt;
 		}
 
-		if (goal_type== GoalType::SET_ARM_POS){
+		if (goal_type== GoalType::CONFIG_ARM){
 			RCLCPP_INFO(this->get_logger(), "Enter target arm position as x y z >> ");
-		}
-		else if (goal_type== GoalType::SET_WRIST_ROTATION){
-			RCLCPP_INFO(this->get_logger(), "Enter target wrist rotation as x y z >> ");
-		}
-		else{
-			return std::nullopt;
-		}
-		
-		std::string str_target;
-		std::getline(std::cin, str_target);  // read the whole line, including spaces
-		std::stringstream ss(str_target);     // put it into a stringstream
 
-		float x, y, z;
+				std::string str_target;
+				std::getline(std::cin, str_target);  // read the whole line, including spaces
+				std::stringstream ss(str_target);     // put it into a stringstream
 
-		if (!(ss >> x >> y >> z)){
-			RCLCPP_ERROR(this->get_logger(), "Invalid target input");
-			return std::nullopt;
-		}else{
-			target_.x =x;
-			target_.y =y;
-			target_.z =	z;
+				double x, y, z;
+
+				if (!(ss >> x >> y >> z)){
+					RCLCPP_ERROR(this->get_logger(), "Invalid arm target input");
+					return std::nullopt;
+				}
+
+				target_.translation.x = x;
+				target_.translation.y = y;
+				target_.translation.z = z;
+
+			RCLCPP_INFO(this->get_logger(), "Enter target wrist rotations as roll pitch yaw (in radians) >> ");
+
+				std::string str_rotation;
+				std::getline(std::cin, str_rotation);  // read the whole line, including spaces
+				std::stringstream ss_(str_rotation);     // put it into a stringstream
+
+				double roll, pitch, yaw;
+
+				if (!(ss_ >> roll >> pitch >> yaw)){
+					RCLCPP_ERROR(this->get_logger(), "Invalid wrist target input");
+					return std::nullopt;
+				}
+				//i know this is supposed to be a quarternion but idk how to use it yet
+				target_.rotation.x = roll;
+				target_.rotation.y = pitch;
+				target_.rotation.z = yaw;
 		}
-		RCLCPP_INFO(this->get_logger(), "You entered: %f %f %f", x, y, z);
-			return target_;
+
+		return target_;
+	
 	}
 };
 

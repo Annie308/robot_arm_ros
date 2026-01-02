@@ -11,21 +11,78 @@
 #include <Eigen/Dense>
 
 #include "arm_attributes.h"
+#include "forward_kin.h"
 
 using namespace std::chrono_literals;
 using namespace std::placeholders;
 using InverseKin = robot_arm_interfaces::srv::InverseKin;
 using JointAngles = robot_arm_interfaces::msg::JointAngles;
 
-static std::tuple<float,float,float> ik(float x, float y, float z) {
+static std::tuple<double,double,double> wrist_ik(double roll, double pitch, double yaw) {
+
+	//getting desired rotation matrices
+	//roll about X
+	Eigen::MatrixXd R_roll(3, 3);
+	R_roll << 1, 0, 0,
+		0, cos(roll), -sin(roll),
+		0, sin(roll), cos(roll);
+
+	//pitch about Y
+	Eigen::MatrixXd R_pitch(3, 3);
+	R_pitch << cos(pitch), 0, sin(pitch),
+		0, 1, 0,
+		-sin(pitch), 0, cos(pitch);
+
+	//yaw about Z
+	Eigen::MatrixXd R_yaw(3, 3);
+	R_yaw << cos(yaw), -sin(yaw), 0,
+		sin(yaw), cos(yaw), 0,
+		0, 0, 1;
+
+	Eigen::MatrixXd goalRot = R_roll * R_pitch * R_yaw; // relative wrist rotation
+	double t4, t5, t6;
+
+	//constraints
+	double sin_t5 = std::clamp(goalRot(0, 2), -1.0, 1.0);
+	t5 = asin(sin_t5);
+
+	//check for gimbal lock
+	bool gimbalLock = fabs(fabs(sin_t5) - 1.0) < 1e-5;
+
+	if (gimbalLock) {
+		// Snap to 90
+		t5 = (sin_t5 > 0 ? PI/2 : -PI/2);
+		t4 = 0.0;
+		t6 = atan2(goalRot(1, 0), goalRot(1, 1));
+	}
+	else {
+		t4 = atan2(-goalRot(1, 2), goalRot(2, 2));
+		t6 = atan2(-goalRot(0, 1), goalRot(0, 0));
+	}
+	return std::make_tuple(t4, t5, t6);
+}
+
+static bool target_reached(double x, double y, double z, double t1, double t2, double t3) {
+	Eigen::Vector3d tar_vec = fk(t1, t2, t3, 0., 0., 0.).back();
+
+	double tolerance = 0.01;		
+
+	if ((fabs(tar_vec(0) - x) < tolerance) && (fabs(tar_vec(1) - y) < tolerance) && (fabs(tar_vec(2) - z) < tolerance)) {
+		return true;
+	}
+	else return false;
+}
+
+
+static std::tuple<double,double,double> ik(double x, double y, double z) {
 	Eigen::Vector3d p_target = Eigen::Vector3d(x, y, z);
 
-	float l3_eff = l3 + l4 +l5+l6;
+	double l3_eff = l3 + l4 +l6;
 	
 	p_target = p_target -link1 - base_link;
 
 	//angle away from XY plane
-	float t = atan2(p_target.y(), p_target.x());
+	double t = atan2(p_target.y(), p_target.x());
 
 	//rotate on the z axis to project onto XZ plane
 	Eigen::MatrixXd proj_max(3, 3);
@@ -37,67 +94,34 @@ static std::tuple<float,float,float> ik(float x, float y, float z) {
 	Eigen::Vector3d p_proj = proj_max * p_target;
 
 	//defining new coordinates 
-	float x1 = p_proj.x(), z1 = p_proj.z();
+	double x1 = p_proj.x(), z1 = p_proj.z();
 
-	float r1 = sqrt(x1 * x1 + z1 * z1);			//new length
-	float phi = atan2(z1, x1);					//angle from base to projected point
+	double r1 = sqrt(x1 * x1 + z1 * z1);			//new length
+	double phi = atan2(z1, x1);					//angle from base to projected point
 
 	//angle from the new point using cosine law
-	float cos_t2 = (l2 * l2 + r1 * r1 - (l3_eff) * (l3_eff)) / (2.f * l2 * r1);
-	cos_t2 = std::min(1.0f, std::max(-1.0f, cos_t2));						//constraints
+	double cos_t2 = (l2 * l2 + r1 * r1 - (l3_eff) * (l3_eff)) / (2. * l2 * r1);
+	cos_t2 = std::min(1.0, std::max(-1.0, cos_t2));						//constraints
 
-	float cos_t3 = (l2 * l2 + (l3_eff) * (l3_eff)-r1 * r1) / (2.f * l2 * (l3_eff));
-	cos_t3 = std::min(1.0f, std::max(-1.0f, cos_t3));						//constraints
+	double cos_t3 = (l2 * l2 + (l3_eff) * (l3_eff)-r1 * r1) / (2. * l2 * (l3_eff));
+	cos_t3 = std::min(1.0, std::max(-1.0, cos_t3));						//constraints
 
-	float t2 = -phi + acos(cos_t2);
-	float t3 = -PI + acos(cos_t3);
-	float t1 = t;
-	
+	double t2 = -phi + acos(cos_t2);
+	double t3 = -PI + acos(cos_t3);
+	double t1 = t;
+
 	return std::make_tuple(t1, t2, t3);
-}
-
-static std::tuple<float,float,float> wrist_ik(float roll, float pitch, float yaw) {
-
-	//getting desired rotation matrices
-	//roll about X
-	Eigen::MatrixXd R_roll(3, 3);
-	R_roll << 1, 0, 0,
-		0, cos(roll), -sin(roll),
-		0, sin(roll), cos(roll);
-
-	//Y
-	Eigen::MatrixXd R_yaw(3, 3);
-	R_yaw << cos(yaw), 0, sin(yaw),
-		0, 1, 0,
-		-sin(yaw), 0, cos(yaw);
-
-	//pitch about Z
-	Eigen::MatrixXd R_pitch(3, 3);
-	R_pitch << cos(pitch), -sin(pitch), 0,
-		sin(pitch), cos(pitch), 0,
-		0, 0, 1;
-
-	Eigen::MatrixXd goalRot = R_roll * R_pitch * R_yaw; // relative wrist rotation
-	float t4, t5, t6;
-
-	//constraints
-	float sin_t5 = std::clamp(goalRot(0, 2), -1.0, 1.0);
-	t5 = asinf(sin_t5);
-
-	//check for gimbal lock
-	bool gimbalLock = fabsf(fabs(sin_t5) - 1.0f) < 1e-5f;
-
-	if (gimbalLock) {
-		// Snap to 90
-		t5 = (sin_t5 > 0 ? PI/2 : -PI/2);
-		t4 = 0.0f;
-		t6 = atan2f(goalRot(1, 0), goalRot(1, 1));
+	
+	//case 1: t1 and t2 >0
+	if (target_reached(x, y, z, t1, t2, t3)) {
+		return std::make_tuple(t1, t2, t3);
 	}
-	else {
-		t4 = atan2f(-goalRot(1, 2), goalRot(2, 2));
-		t6 = atan2f(-goalRot(0, 1), goalRot(0, 0));
+	//case 2: t1 > 0, t2 < 0
+	else if (target_reached(x, y, z, t1, -t2, t3)) {
+		return std::make_tuple(t1, -t2, t3);
 	}
-	return std::make_tuple(t4, t5, t6);
+
+	
 }
 
 class IkServer : public rclcpp::Node
@@ -119,6 +143,7 @@ public:
 
 	publisher_ptr_ = this->create_publisher<JointAngles>("gyro_arm_angles", 10);
 
+	
 	auto publisher_timer_callback =
       [this]() -> void {
         auto message = robot_arm_interfaces::msg::JointAngles();
@@ -131,7 +156,8 @@ public:
         this->publisher_ptr_->publish(message);
       };
 
-    publisher_timer_ = this->create_wall_timer(50ms, publisher_timer_callback);
+    publisher_timer_ = this->create_wall_timer(2000ms, publisher_timer_callback);
+	
 
   	RCLCPP_INFO(this->get_logger(), "Ready to calculate target joint angles.");
         
@@ -147,43 +173,38 @@ private:
 
   void get_result(const std::shared_ptr<InverseKin::Request> request,std::shared_ptr<InverseKin::Response>response)
   {
-		float x = request->target.x; 
-		float y = request->target.y; 
-		float z =request->target.z;
+		double x = request->target.translation.x; 
+		double y = request->target.translation.y; 
+		double z =request->target.translation.z;
 
-		std::tuple<float,float,float> result;
+		double roll = request->target.rotation.x;
+		double pitch = request->target.rotation.y;
+		double yaw = request->target.rotation.z;
 
-		if (request->mode == 0){			//arm ik
-			result = ik(x, y, z);
-			RCLCPP_INFO(this->get_logger(), "Incoming request for arm angles\n");
-			response->angles.push_back(std::get<0>(result));
-			response->angles.push_back(std::get<1>(result));
-			response->angles.push_back(std::get<2>(result));
-			
-		}else if (request->mode ==1){		//wrist ik
-			result = wrist_ik(x, y, z);
-			RCLCPP_INFO(this->get_logger(), "Incoming request for wrist angles\n");
-			response->angles.push_back(std::get<0>(result));
-			response->angles.push_back(std::get<1>(result));
-			response->angles.push_back(std::get<2>(result));
-			
-		}else{
-			RCLCPP_ERROR(this->get_logger(), "Invalid mode selected");
-			return;
-		}
+		std::tuple<double,double, double> arm_result = ik(x, y, z);
+		RCLCPP_INFO(this->get_logger(), "Incoming request for arm angles\n");
+		response->angles.push_back(std::get<0>(arm_result));
+		response->angles.push_back(std::get<1>(arm_result));
+		response->angles.push_back(std::get<2>(arm_result));
+		
+
+		std::tuple<double,double,double> wrist_result = wrist_ik(roll, pitch, yaw);
+		RCLCPP_INFO(this->get_logger(), "Incoming request for wrist angles\n");
+		response->angles.push_back(std::get<0>(wrist_result));
+		response->angles.push_back(std::get<1>(wrist_result));
+		response->angles.push_back(std::get<2>(wrist_result));
 		
 		
-		RCLCPP_INFO(this->get_logger(), "x: %f\ny: %f\nz: %f",request->target.x,request->target.y,request->target.z);
+		RCLCPP_INFO(this->get_logger(), "x: %lf\ny: %lf\nz: %lf",
+			request->target.translation.x,request->target.translation.y,request->target.translation.z);
+		RCLCPP_INFO(this->get_logger(), "roll: %lf\npitch: %lf\nyaw: %lf",
+			request->target.rotation.x,request->target.rotation.y,request->target.rotation.z);
 		RCLCPP_INFO(this->get_logger(), "Sending back %zu angles: ", response->angles.size());
 
 		for (size_t i=0; i< response->angles.size(); i++){
-			RCLCPP_INFO(this->get_logger(), "Theta %zu: %f rads...", i, response->angles[i]);
-			joint_angles.push_back(static_cast<double>(response->angles[i]));
+			RCLCPP_INFO(this->get_logger(), "Sending back %zu joint angles: %lf rads...", i, response->angles[i]);
+			joint_angles.push_back(response->angles[i]);
 		}
-
-		joint_angles.push_back(0);
-		joint_angles.push_back(0);
-		joint_angles.push_back(0);
 		
   }	
 };

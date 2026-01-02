@@ -1,6 +1,5 @@
 # Request
-geometry_msgs/Vector3 target
-int32 mode  # 0: arm, 1: wrist
+geometry_msgs/Transform target
 ---
 # Response
-float32[] angles
+float64[] angles
