@@ -4,16 +4,16 @@
 
 //Make these parameters!!!!
 //----------------------
-inline extern const float base = 0.5f;
-inline extern const float l1 = 0.5f; 
-inline extern const float l2 = 0.5f;
-inline extern const float l3 = 0.5f;
-inline extern const float l4 = 0.5f;
-inline extern const float l5 = 0.5f;
-inline extern const float l6 = 0.3f;
+inline extern const double base = 0.5;
+inline extern const double l1 = 0.5; 
+inline extern const double l2 = 0.5;
+inline extern const double l3 = 0.5;
+inline extern const double l4 = 0.;
+inline extern const double l5 = 0.3;
+inline extern const double l6 = 0.2;
 //---------------------
 
-inline extern const float PI = 3.14159265358979323846f;
+inline extern const double PI = 3.14159265358979323846f;
 
 inline extern const Eigen::Vector3d base_link(0, 0,base);
 inline extern const Eigen::Vector3d link1(0, 0, l1);

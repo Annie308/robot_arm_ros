@@ -41,7 +41,7 @@
 
   <link name="link2">
     <visual>
-        <origin xyz="0.2 0 0" rpy="0 1.57 0" />
+        <origin xyz="0.25 0 0" rpy="0 1.57 0" />
         <geometry>
         <cylinder radius="0.1" length=".5" />
         </geometry>
@@ -77,12 +77,6 @@
   </joint>
 
   <link name="link4">
-    <visual>
-        <geometry>
-        <cylinder radius="0.1" length=".5" />
-        </geometry>
-        <origin xyz="0.25 0 0" rpy="0 1.57 0" />
-    </visual>
   </link>
 
   <joint name="link3_to_link4" type="revolute">
@@ -98,12 +92,12 @@
         <geometry>
         <cylinder radius="0.2" length=".4" />
         </geometry>
-        <origin xyz="0 0 0" rpy="1.57 0 0" />
+        <origin xyz="0.2 0 0" rpy="1.57 0 0" />
     </visual>
   </link>
 
   <joint name="link4_to_link5" type="fixed">
-    <origin xyz="0.1 0 0" />
+    <origin xyz="0 0 0" />
     <parent link="link4"/>
     <child link="link5"/>
   </joint>
