@@ -348,20 +348,21 @@ private:
 				target_.translation.y = y;
 				target_.translation.z = z;
 
-			RCLCPP_INFO(this->get_logger(), "Enter target wrist rotations as roll and yaw (in radians) >> ");
+			RCLCPP_INFO(this->get_logger(), "Enter target wrist rotations as roll, pitch, yaw (in radians) >> ");
 
 				std::string str_rotation;
 				std::getline(std::cin, str_rotation);  // read the whole line, including spaces
 				std::stringstream ss_(str_rotation);     // put it into a stringstream
 
-				double roll, yaw;
+				double roll, pitch, yaw;
 
-				if (!(ss_ >> roll >> yaw)){
+				if (!(ss_ >> roll >>pitch >> yaw)){
 					RCLCPP_ERROR(this->get_logger(), "Invalid wrist target input");
 					return std::nullopt;
 				}
 				//i know this is supposed to be a quarternion but idk how to use it yet
 				target_.rotation.x = roll;
+				target_.rotation.y = pitch;
 				target_.rotation.z = yaw;
 		}
 

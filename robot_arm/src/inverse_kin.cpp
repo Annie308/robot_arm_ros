@@ -18,7 +18,8 @@ using namespace std::placeholders;
 using InverseKin = robot_arm_interfaces::srv::InverseKin;
 using JointAngles = robot_arm_interfaces::msg::JointAngles;
 
-static std::tuple<double,double,double> wrist_ik(double t1, double t2, double t3,double roll, double yaw) {
+static std::tuple<double,double,double> wrist_ik(double t1, double t2, double t3,double roll, double pitch, double yaw) {
+	yaw *= -1.0;
 	//First we find R3 from the arm
 	// Rotation about Z
 	Eigen::MatrixXd rot1(3, 3);
@@ -41,21 +42,29 @@ static std::tuple<double,double,double> wrist_ik(double t1, double t2, double t3
 
 	//getting desired rotation matrices
 	//X
+
+	//Y
+	Eigen::MatrixXd R_pitch(3, 3);
+	R_pitch << cos(pitch), 0, sin(pitch),
+		0, 1, 0,
+		-sin(pitch), 0, cos(pitch);
+	
+	//Z
+	Eigen::MatrixXd R_yaw(3, 3);
+	R_yaw << cos(yaw), -sin(yaw), 0,
+		sin(yaw), cos(yaw), 0,
+		0, 0, 1;
+	//X
 	Eigen::MatrixXd R_roll(3, 3);
 	R_roll << 1, 0, 0,
 		0, cos(roll), -sin(roll),
 		0, sin(roll), cos(roll);
 
-	//Y
-	Eigen::MatrixXd R_yaw(3, 3);
-	R_yaw << cos(yaw), 0, sin(yaw),
-		0, 1, 0,
-		-sin(yaw), 0, cos(yaw);
 
+	//ZYX
+	Eigen::MatrixXd R_T =R_yaw*R_pitch*R_roll;
 
-	Eigen::MatrixXd R_T = R_roll*R_yaw;
-
-	Eigen::MatrixXd goalRot = R_13.transpose()* R_T; // desired relative wrist rotation
+	Eigen::MatrixXd goalRot = R_13.transpose() * R_T; // desired relative wrist rotation
 	
 	double t4, t5, t6;
 
@@ -79,7 +88,7 @@ static std::tuple<double,double,double> wrist_ik(double t1, double t2, double t3
 		t4 = atan2(goalRot(1, 0)/sin(t5), -goalRot(2, 0)/sin(t5));
 		t6 = atan2(-goalRot(0, 1)/sin(t5), goalRot(0, 2)/sin(t5));
 	}
-	return std::make_tuple(t4, t5, t6);
+	return std::make_tuple(t6, t5, t4);
 }
 
 static bool target_reached(double x, double y, double z, double t1, double t2, double t3) {
@@ -97,7 +106,7 @@ static bool target_reached(double x, double y, double z, double t1, double t2, d
 static std::tuple<double,double,double> ik(double x, double y, double z) {
 	Eigen::Vector3d p_target = Eigen::Vector3d(x, y, z);
 
-	double l3_eff = l3 + l4 +l5;
+	double l3_eff = l3 + l4;
 	
 	p_target = p_target -link1 - base_link;
 
@@ -129,15 +138,13 @@ static std::tuple<double,double,double> ik(double x, double y, double z) {
 	double t2 = -phi + acos(cos_t2);
 	double t3 = -PI + acos(cos_t3);
 	double t1 = t;
-
-	return std::make_tuple(t1, t2, t3);
 	
-	//case 1: t1 and t2 >0
-	if (target_reached(x, y, z, t1, t2, t3)) {
+	//case 1: t1 and t2 >0 (place holder)
+	if (true) {
 		return std::make_tuple(t1, t2, t3);
 	}
 	//case 2: t1 > 0, t2 < 0
-	else if (target_reached(x, y, z, t1, -t2, t3)) {
+	else {
 		return std::make_tuple(t1, -t2, t3);
 	}
 }
@@ -195,7 +202,9 @@ private:
 		double z =request->target.translation.z;
 
 		double roll = request->target.rotation.x;
+		double pitch = request->target.rotation.y;
 		double yaw = request->target.rotation.z;
+
 				
 		std::tuple<double,double, double> arm_result = ik(x, y, z);
 
@@ -208,7 +217,7 @@ private:
 		response->angles.push_back(t2);
 		response->angles.push_back(t3);
 
-		std::tuple<double,double,double> wrist_result = wrist_ik(t1, t2, t3, roll, yaw);
+		std::tuple<double,double,double> wrist_result = wrist_ik(t1, t2, t3, roll, pitch, yaw);
 		RCLCPP_INFO(this->get_logger(), "Incoming request for wrist angles\n");
 		response->angles.push_back(std::get<0>(wrist_result));
 		response->angles.push_back(std::get<1>(wrist_result));

@@ -78,8 +78,8 @@ void StatePublisher::publish(){
     // add time stamp
     joint_state.header.stamp=this->get_clock()->now();
     // Specify joints' name which are defined in the r2d2.urdf.xml and their content
-    joint_state.name={"base_to_link1", "link1_to_link2", "link2_to_link3", "link3_to_link4", "link5_to_link6", "link6_to_end_eff"};
-    joint_state.position={r1,r2,r3, r4, r5, r6};
+    joint_state.name={"base_to_link1", "link1_to_link2", "link2_to_link3", "link3_to_link4", "link4_to_link5_pitch","link4_to_link5_roll" };
+    joint_state.position={r1,r2, r3, r4, r5, r6};
 
     // add time stamp
     t.header.stamp=this->get_clock()->now();

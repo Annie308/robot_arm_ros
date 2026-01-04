@@ -5,12 +5,11 @@
 //Make these parameters!!!!
 //----------------------
 inline extern const double base = 0.5;
-inline extern const double l1 = 0.5; 
-inline extern const double l2 = 0.5;
-inline extern const double l3 = 0.5;
-inline extern const double l4 = 0.;
-inline extern const double l5 = 0.3;
-inline extern const double l6 = 0.2;
+inline extern const double l1 = 1.0; 
+inline extern const double l2 = 1.0;
+inline extern const double l3 = 0.3;
+inline extern const double l4 = 0.3;
+inline extern const double l5 = 0.2;
 //---------------------
 
 inline extern const double PI = 3.14159265358979323846f;
@@ -22,4 +21,3 @@ inline extern const Eigen::Vector3d link3(l3, 0, 0);
 
 inline extern const Eigen::Vector3d link4(l4, 0,0);
 inline extern const Eigen::Vector3d link5(l5, 0, 0);
-inline extern const Eigen::Vector3d link6(l6, 0, 0);

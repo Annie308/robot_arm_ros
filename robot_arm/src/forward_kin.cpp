@@ -30,7 +30,7 @@ std::vector<Eigen::Vector3d> fk(double t1, double t2, double t3) {
 		0, 1, 0,
 		-sin(t3), 0, cos(t3);
 
-	Eigen::Vector3d link3_eff(0, l3+l4+l5+l6, 0);
+	Eigen::Vector3d link3_eff(0, l3+l4+l5, 0);
 
 	//defining joint positons after transformations
 	Eigen::Vector3d link1_end = rot1 * link1;
