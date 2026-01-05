@@ -62,6 +62,11 @@ static std::tuple<double,double,double> wrist_ik(double t1, double t2, double t3
 	Eigen::MatrixXd R_T =R_roll*R_pitch*R_yaw;
 
 	Eigen::MatrixXd goalRot = R_13.transpose() * R_T; // desired relative wrist rotation
+
+	//constraints
+	//-pi <= t4 <= pi
+	//-pi/2 <= t5 <= pi/2
+	//-pi <= t6 <= pi
 	
 	double t4, t5, t6;
 
@@ -70,8 +75,9 @@ static std::tuple<double,double,double> wrist_ik(double t1, double t2, double t3
 	//constraints
 	double cos_t5 = std::clamp(sqrt(goalRot(0, 0)*goalRot(0,0) + goalRot(0,1)*goalRot(0,1)), -1.0, 1.0);
 	double sin_t5 = std::clamp(goalRot(0,2), -1.0, 1.0);
-	t5 = atan2(sin_t5,cos_t5);
 
+	t5 = atan2(sin_t5,cos_t5);			//i think there may be only 1 solution since cos is an even function
+	
 	//check for gimbal lock
 	bool gimbalLock = fabs(fabs(sin_t5) - 1.0) < 1e-5;
 
@@ -120,17 +126,22 @@ static std::tuple<double,double,double> ik(double x, double y, double z) {
 	double cos_t3 = (l2 * l2 + (l3_eff) * (l3_eff)-r1 * r1) / (2. * l2 * (l3_eff));
 	cos_t3 = std::min(1.0, std::max(-1.0, cos_t3));						//constraints
 
+	//constraints:
+	//-pi <= t1 <= pi
+	//-3pi/2 <= t2 <= pi/2
+	//-3pi/2 <= t3 <= pi/2				
+
 	double t2 = -phi + acos(cos_t2);
 	double t3 = -PI + acos(cos_t3);
 	double t1 = t;
 	
-	//case 1: t1 and t2 >0 (place holder)
-	if (true) {
+	//try the elbow down solution if the angle is not within the constraint (prefer the eblow up solution)
+	if (t2 > PI/2) {
 		return std::make_tuple(t1, t2, t3);
 	}
 	//case 2: t1 > 0, t2 < 0
 	else {
-		return std::make_tuple(t1, -t2, t3);
+		return std::make_tuple(t1, -t2, -t3);
 	}
 }
 

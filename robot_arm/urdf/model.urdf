@@ -7,13 +7,19 @@
     </link>
 
     <xacro:property name="base_len" value="0.5" />
+    <xacro:property name="base_radius" value="0.3" />
     <link name="base_link">
     <visual>
         <origin xyz="0 0 ${base_len/2.0}" rpy="0 0 0" />
         <geometry>
-        <cylinder radius="0.2" length="${base_len}" />
+        <cylinder radius="${base_radius}" length="${base_len}" />
         </geometry>
     </visual>
+    <collision>
+      <geometry>
+        <cylinder length="${base_len}" radius="${base_radius}"/>
+      </geometry>
+    </collision>
     </link>
 
   <joint name="axis_to_base" type="fixed">
@@ -22,14 +28,23 @@
   </joint>
 
   <xacro:property name="l1_len" value="1.0" />
+   <xacro:property name="l1_radius" value="0.1" />
   <link name="link1">
     <visual>
         <origin xyz="0 0 ${l1_len/2.0}" rpy="0 0 0" />
         <geometry>
-        <cylinder radius="0.1" length="${l1_len}" />
+        <cylinder radius="${l1_radius}" length="${l1_len}" />
         </geometry>
-       
     </visual>
+    <collision>
+      <geometry>
+        <cylinder length="${l1_len}" radius="${l1_radius}"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="10"/>
+      <inertia ixx="1e-3" ixy="0.0" ixz="0.0" iyy="1e-3" iyz="0.0" izz="1e-3"/>
+    </inertial>
   </link>
 
 
@@ -42,14 +57,23 @@
   </joint>
 
   <xacro:property name="l2_len" value="1.0" />
+  <xacro:property name="l2_radius" value="0.1" />
   <link name="link2">
     <visual>
         <origin xyz="${l2_len/2.0} 0 0" rpy="0 1.57 0" />
         <geometry>
-        <cylinder radius="0.1" length="${l2_len}" />
+        <cylinder radius="${l1_radius}" length="${l2_len}" />
         </geometry>
-       
     </visual>
+    <collision>
+      <geometry>
+        <cylinder length="${l2_len}" radius="${l2_radius}"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="10"/>
+      <inertia ixx="1e-3" ixy="0.0" ixz="0.0" iyy="1e-3" iyz="0.0" izz="1e-3"/>
+    </inertial>
   </link>
 
    <joint name="link1_to_link2" type="revolute">
@@ -61,14 +85,23 @@
   </joint>
 
   <xacro:property name="l3_len" value="0.3" />
+    <xacro:property name="l3_radius" value="0.1" />
   <link name="link3">
     <visual>
         <origin xyz="${l3_len/2.0} 0 0" rpy="0 1.57 0" />
         <geometry>
-        <cylinder radius="0.1" length="${l3_len}" />
+        <cylinder radius="${l3_radius}" length="${l3_len}" />
         </geometry>
-       
     </visual>
+    <collision>
+      <geometry>
+        <cylinder length="${l3_len}" radius="${l3_radius}"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="10"/>
+      <inertia ixx="1e-3" ixy="0.0" ixz="0.0" iyy="1e-3" iyz="0.0" izz="1e-3"/>
+    </inertial>
   </link>
 
    <joint name="link2_to_link3" type="revolute">
@@ -85,9 +118,18 @@
     <visual>
         <origin xyz="${l4_len/2.0} 0 0" rpy="1.57 0 0" />
         <geometry>
-        <cylinder radius="${l4_len/2}" length="${l4_width}" />
+        <cylinder length="${l4_width}" radius="${l4_len/2}" />
         </geometry>
     </visual>
+    <collision>
+      <geometry>
+        <cylinder length="${l4_width}" radius="${l4_len/2}"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="10"/>
+      <inertia ixx="1e-3" ixy="0.0" ixz="0.0" iyy="1e-3" iyz="0.0" izz="1e-3"/>
+    </inertial>
   </link>
 
    <joint name="link3_to_link4" type="revolute">
@@ -99,13 +141,23 @@
   </joint>
 
   <xacro:property name="l5_len" value="0.2" />
+  <xacro:property name="l5_radius" value="0.1" />
   <link name="link5">
     <visual>
         <origin xyz="0 0 -${l5_len/2.0}" rpy="0 0 0" />
         <geometry>
-        <cylinder radius="0.1" length="${l5_len}" />
+        <cylinder radius="${l5_radius}" length="${l5_len}" />
         </geometry>
     </visual>
+    <collision>
+      <geometry>
+        <cylinder length="${l5_len}" radius="${l5_radius}"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="10"/>
+      <inertia ixx="1e-3" ixy="0.0" ixz="0.0" iyy="1e-3" iyz="0.0" izz="1e-3"/>
+    </inertial>
   </link>
 
   <joint name="link4_to_link5_pitch" type="revolute">
@@ -113,10 +165,14 @@
    <origin xyz="${l4_len} 0 0" rpy="0 0 0"/>
    <limit effort="10" velocity="1" lower="-3.14" upper="3.14"/>
     <parent link="link4"/>
-    <child link="link5"/>
+    <child link="link5"/>s
   </joint>
 
   <link name="link5_roll">
+    <inertial>
+      <mass value="10"/>
+      <inertia ixx="1e-3" ixy="0.0" ixz="0.0" iyy="1e-3" iyz="0.0" izz="1e-3"/>
+    </inertial>
   </link>
 
   <joint name="link4_to_link5_roll" type="revolute">
