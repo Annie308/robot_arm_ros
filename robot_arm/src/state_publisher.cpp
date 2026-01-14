@@ -33,7 +33,7 @@ class StatePublisher : public rclcpp::Node{
             publisher_timer_=this->create_wall_timer(100ms,std::bind(&StatePublisher::publish,this));
 
             subscription_ = this->create_subscription<robot_arm_interfaces::msg::JointAngles>(
-            "gyro_arm_angles", 10, std::bind(&StatePublisher::topic_callback, this, std::placeholders::_1));
+            "arm_angles", 10, std::bind(&StatePublisher::topic_callback, this, std::placeholders::_1));
 
             auto subscriber_timer_callback =
             [this](){return std::bind(&StatePublisher::topic_callback, this,  std::placeholders::_1);};

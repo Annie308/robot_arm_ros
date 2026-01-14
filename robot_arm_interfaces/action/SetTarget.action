@@ -2,7 +2,7 @@
 float64[] target_angles
 ---
 # Result
-float64[] angles_reached
+bool success
 ---
 # Feedback
-float64[] curr_angles
+bool status

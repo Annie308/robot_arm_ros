@@ -124,25 +124,13 @@ static std::tuple<double,double,double> ik(double x, double y, double z) {
 	cos_t2 = std::min(1.0, std::max(-1.0, cos_t2));						//constraints
 
 	double cos_t3 = (l2 * l2 + (l3_eff) * (l3_eff)-r1 * r1) / (2. * l2 * (l3_eff));
-	cos_t3 = std::min(1.0, std::max(-1.0, cos_t3));						//constraints
-
-	//constraints:
-	//-pi <= t1 <= pi
-	//-3pi/2 <= t2 <= pi/2
-	//-3pi/2 <= t3 <= pi/2				
+	cos_t3 = std::min(1.0, std::max(-1.0, cos_t3));						//constraints			
 
 	double t2 = -phi + acos(cos_t2);
 	double t3 = -PI + acos(cos_t3);
 	double t1 = t;
-	
-	//try the elbow down solution if the angle is not within the constraint (prefer the eblow up solution)
-	if (t2 > PI/2) {
-		return std::make_tuple(t1, t2, t3);
-	}
-	//case 2: t1 > 0, t2 < 0
-	else {
-		return std::make_tuple(t1, -t2, -t3);
-	}
+
+	return std::make_tuple(t1, t2, t3);
 }
 
 class IkServer : public rclcpp::Node
@@ -162,7 +150,7 @@ public:
 		std::bind(&IkServer::get_result, this, _1, _2)
 	);
 
-	publisher_ptr_ = this->create_publisher<JointAngles>("gyro_arm_angles", 10);
+	publisher_ptr_ = this->create_publisher<JointAngles>("arm_angles", 10);
 
 	auto publisher_timer_callback =
       [this]() -> void {
@@ -170,15 +158,16 @@ public:
         message.joint_angles = joint_angles;
 
 		RCLCPP_INFO(this->get_logger(), "Publishing:");
-		for (auto angle: message.joint_angles){
+		
+		this->publisher_ptr_->publish(message);
+		
+		for (auto angle: joint_angles){
         	RCLCPP_INFO(this->get_logger(), "%lf", angle);
 		}
-        this->publisher_ptr_->publish(message);
+       
       };
 
     publisher_timer_ = this->create_wall_timer(2000ms, publisher_timer_callback);
-	
-
   	RCLCPP_INFO(this->get_logger(), "Ready to calculate target joint angles.");
         
     }

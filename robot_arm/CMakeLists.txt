@@ -46,13 +46,11 @@ target_link_libraries(start_motors PUBLIC
     ${robot_arm_interfaces_TARGETS}
     ${std_msgs_TARGETS}
     rclcpp::rclcpp
-    rclcpp_action::rclcpp_action
   )
 target_link_libraries(set_target PUBLIC
     ${robot_arm_interfaces_TARGETS}
     ${std_msgs_TARGETS}
     rclcpp::rclcpp
-    rclcpp_action::rclcpp_action
   )
 
 install(TARGETS 
