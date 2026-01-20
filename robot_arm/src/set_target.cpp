@@ -8,19 +8,27 @@
 #include <optional>
 #include <future>
 #include "rclcpp/rclcpp.hpp"
-#include "std_msgs/msg/string.hpp"
 #include "geometry_msgs/msg/vector3.hpp"
-#include "robot_arm_interfaces/msg/joint_positions.hpp"
+
 #include "robot_arm_interfaces/srv/inverse_kin.hpp"
 #include "robot_arm_interfaces/srv/set_claw.hpp"
+#include "robot_arm_interfaces/srv/servo_angles.hpp"
 
+/*
+Set target node
+
+1. fetches user input from the terminal: goal_type, desired position & orientation
+2. if configuring the arm, sends service request to inverse_kin for joint angles
+	if configuring the claw, sends service request to microros -- TO BE IMPLEMENTED
+4. sends the claw state (as a server) over /claw_state
+*/
 
 using namespace std::chrono_literals;
 using namespace std::placeholders;
 
-using JointPositions = robot_arm_interfaces::msg::JointPositions;
 using InverseKin = robot_arm_interfaces::srv::InverseKin;
 using SetClaw = robot_arm_interfaces::srv::SetClaw;
+using ServoAngles = robot_arm_interfaces::srv::ServoAngles;
 
 enum class GoalType {RELEASE_CLAW, CLAMP_CLAW, CONFIG_ARM};
 
@@ -31,6 +39,7 @@ public:
   {	
 		angles_client_ptr_ =this->create_client<InverseKin>("target_angles");
 		claw_client_ptr_ =this->create_client<SetClaw>("set_claw");	
+		servos_client_ptr_ =this->create_client<ServoAngles>("servo_angles");	
 	}
 
 	void get_angles(){
@@ -48,6 +57,10 @@ public:
 		request->target.translation.x,  request->target.translation.y, request->target.translation.z,
 		request->target.rotation.x, request->target.rotation.y, request->target.rotation.z);
 		
+		if (!angles_client_ptr_->service_is_ready()) {
+			RCLCPP_WARN(this->get_logger(), "angles service not ready");
+			return;
+		}
 		
         while (!angles_client_ptr_->wait_for_service(5s)) {
             if (!rclcpp::ok()) {
@@ -63,17 +76,65 @@ public:
         if (rclcpp::spin_until_future_complete(this->get_node_base_interface(), future_result) ==
             rclcpp::FutureReturnCode::SUCCESS)
         {  
+			joint_angles.clear();
 			auto response = future_result.get()->angles;
            
 			RCLCPP_INFO(this->get_logger(), "Inverse kinematics response received: ");
 			for (auto angle: response){
 				RCLCPP_INFO(this->get_logger(), "%lf ", angle);
+				joint_angles.push_back(angle);
 			}
 			return;
         } else {
             RCLCPP_ERROR(this->get_logger(), "Failed to call service get_angles");
         }
     }
+
+	void send_servos_request(){
+		if (!this->servos_client_ptr_) {
+			RCLCPP_ERROR(this->get_logger(), "Servos service client not initialized");
+			return;
+		}
+
+		if (joint_angles.size() != 6) {
+			RCLCPP_ERROR(this->get_logger(), "joint_angles incomplete, cannot send");
+			return;
+		}
+
+		RCLCPP_INFO(this->get_logger(), "Request to configure servos sent.");
+
+		auto request = std::make_shared<ServoAngles::Request>();
+		request->angles.reserve(joint_angles.size());  // reserve exact size
+
+		for (size_t i=0; i< joint_angles.size(); i++) {
+			request->angles[i] = joint_angles[i];
+		}
+
+		while (!servos_client_ptr_->wait_for_service(5s)) {
+            if (!rclcpp::ok()) {
+            RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the service. Exiting.");
+                return;
+            }
+            RCLCPP_INFO(this->get_logger(), "service not available, waiting again...");
+        }
+
+       auto result = servos_client_ptr_->async_send_request(request);
+    
+        // Wait for the result.
+        if (rclcpp::spin_until_future_complete(this->get_node_base_interface(), result) ==
+            rclcpp::FutureReturnCode::SUCCESS)
+        {  
+			bool response = result.get()->success;
+           
+			if (response){
+				RCLCPP_INFO(this->get_logger(), "servo state set successfully");
+			}else{
+				RCLCPP_ERROR(this->get_logger(), "Failed to set servo state");
+			}
+        } else {
+            RCLCPP_ERROR(this->get_logger(), "Failed to call service servo_angles");
+        }
+	}
 
 	void send_claw_request(){
 
@@ -85,10 +146,10 @@ public:
 		
 		if (goal_type == GoalType::CLAMP_CLAW){
 			RCLCPP_INFO(this->get_logger(), "Request to clamp claw sent.");
-			request->clamp_claw = true;
+			request->claw_state = 'c';
 		}else if (goal_type == GoalType::RELEASE_CLAW){
 			RCLCPP_INFO(this->get_logger(), "Request to release claw sent.");
-			request->clamp_claw = false;
+			request->claw_state = 'o';
 		}else{
 			RCLCPP_ERROR(this->get_logger(), "Invalid claw command");
 			return;
@@ -122,8 +183,10 @@ public:
 	private:
 		rclcpp::Client<InverseKin>::SharedPtr angles_client_ptr_;
 		rclcpp::Client<SetClaw>::SharedPtr claw_client_ptr_;
+		rclcpp::Client<ServoAngles>::SharedPtr servos_client_ptr_;
 		rclcpp::TimerBase::SharedPtr timer_;
 		geometry_msgs::msg::Transform target;
+		std::vector<double> joint_angles;
 		GoalType goal_type;
 };
 
@@ -139,6 +202,7 @@ public:
 	if (goal_type == GoalType::CONFIG_ARM){
 		auto angles_client = std::make_shared<ServiceClient>(rclcpp::NodeOptions(), *target, goal_type);
 		angles_client->get_angles();
+		angles_client->send_servos_request();
 	}else{
 
 		//create client
@@ -240,7 +304,6 @@ private:
 int main(int argc, char ** argv)
 {
 	rclcpp::init(argc, argv);
-	//rclcpp::spin(std::make_shared<SetParameter>(rclcpp::NodeOptions()));
 	rclcpp::spin(std::make_shared<SetTargetClient>());
 	rclcpp::shutdown();
 	return 0;

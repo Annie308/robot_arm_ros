@@ -81,6 +81,5 @@ def generate_launch_description():
         joint_state_publisher_node,
         set_target_node,
         get_angles_node,
-        #start_motors_node,
         rviz_node
     ])

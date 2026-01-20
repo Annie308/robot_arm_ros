@@ -8,14 +8,13 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(geometry_msgs REQUIRED)
-find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/JointPositions.msg"
   "srv/InverseKin.srv"
   "srv/SetClaw.srv"
-  "srv/GetJointAngles.srv"
-  DEPENDENCIES geometry_msgs
+  "srv/ServoAngles.srv"
+  DEPENDENCIES geometry_msgs 
 )
 ament_export_dependencies(rosidl_default_runtime)
 ament_package()

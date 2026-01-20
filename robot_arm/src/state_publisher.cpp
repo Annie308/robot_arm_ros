@@ -9,6 +9,12 @@
 #include <thread>
 #include <chrono>
 
+/*
+State publisher
+1. recieves joint angles from the /arm_angles topic
+2. creates the joint state publisher over /joint_states topic
+3. publishes the joint angles over /tf for RVIZ
+*/
 
 using namespace std::chrono;
 
@@ -98,19 +104,6 @@ void StatePublisher::publish(){
                 angles_vec[i] += degree;
             }
         }
-    }
-
-   bool all_similar = true;
-
-    for (size_t i = 0; i < angles_rec.size(); i++) {
-        if (std::fabs(angles_vec[i] - angles_rec[i]) > tol) {
-            all_similar = false;
-            break;
-        }
-    }
-
-    if (all_similar) {
-       // std::fill(angles_vec.begin(), angles_vec.end(), 0.0);
     }
 
     r1 = angles_vec[0];
