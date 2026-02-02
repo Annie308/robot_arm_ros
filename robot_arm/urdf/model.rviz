@@ -25,7 +25,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 7.6
+      Distance: 8
       Name: Current View
       Pitch: 0.175
       Value: Orbit (rviz)

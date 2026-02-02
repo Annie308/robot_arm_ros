@@ -64,9 +64,9 @@ class StatePublisher : public rclcpp::Node{
 	rclcpp::TimerBase::SharedPtr publisher_timer_;
 	rclcpp::TimerBase::SharedPtr subscription_timer_;
 
-    std::vector<double> angles_rec;
-    const double degree=M_PI/180.0;
-    std::vector<double> angles_vec;
+    std::vector<double> angles_rec;     //angles received
+    const double degree=2.*M_PI/180.0;
+    std::vector<double> angles_vec;     //angles to publish
     double r1, r2, r3, r4, r5, r6; 
     
 };
@@ -97,12 +97,14 @@ void StatePublisher::publish(){
     double tol = 0.9*degree;
 
     for (size_t i=0; i< angles_vec.size(); i++){
-        if (std::fabs(angles_vec[i] - angles_rec[i]) > tol){
+        if (std::fabs(angles_vec[i] - angles_rec[i]) > tol){        //sweep to the desired angle
             if (angles_rec[i]< 0){
                 angles_vec[i] -= degree;
-            }else if (angles_rec[i] > 0){
+            }else {
                 angles_vec[i] += degree;
             }
+        }else{
+           //s angles_vec[i] = 0;                                                      //sweep back after reaching the angle
         }
     }
 

@@ -104,11 +104,12 @@ public:
 		RCLCPP_INFO(this->get_logger(), "Request to configure servos sent.");
 
 		auto request = std::make_shared<ServoAngles::Request>();
-		request->angles.reserve(joint_angles.size());  // reserve exact size
-
-		for (size_t i=0; i< joint_angles.size(); i++) {
-			request->angles[i] = joint_angles[i];
-		}
+		request->angle_1 = joint_angles[0];
+		request->angle_2 = joint_angles[1];
+		request->angle_3 = joint_angles[2];
+		request->angle_4 = joint_angles[3];
+		request->angle_5 = joint_angles[4];
+		request->angle_6 = joint_angles[5];
 
 		while (!servos_client_ptr_->wait_for_service(5s)) {
             if (!rclcpp::ok()) {
@@ -146,10 +147,10 @@ public:
 		
 		if (goal_type == GoalType::CLAMP_CLAW){
 			RCLCPP_INFO(this->get_logger(), "Request to clamp claw sent.");
-			request->claw_state = 'c';
+			request->claw_state = 1;
 		}else if (goal_type == GoalType::RELEASE_CLAW){
 			RCLCPP_INFO(this->get_logger(), "Request to release claw sent.");
-			request->claw_state = 'o';
+			request->claw_state = 0;
 		}else{
 			RCLCPP_ERROR(this->get_logger(), "Invalid claw command");
 			return;
@@ -230,8 +231,8 @@ private:
 		RCLCPP_INFO(this->get_logger(),
 			"Enter separated by spaces:\n"
 			"(1) Configure arm\n"
-			"(3) Clamp claw\n"
-			"(4) Release claw >> ");
+			"(2) Clamp claw\n"
+			"(3) Release claw >> ");
 		
 		std::getline(std::cin, set_goal_type);  // read the whole line, including spaces
 		std::stringstream str_set_goal_type(set_goal_type);     // put it into a stringstream

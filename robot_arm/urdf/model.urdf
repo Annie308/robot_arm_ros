@@ -6,69 +6,62 @@
     </visual>
     </link>
 
-    <xacro:property name="base_len" value="0.5" />
-    <xacro:property name="base_radius" value="0.3" />
     <link name="base_link">
     <visual>
-        <origin xyz="0 0 ${base_len/2.0}" rpy="0 0 0" />
+        <origin xyz="0 0 0" rpy="1.57 0 0" />
         <geometry>
-        <cylinder radius="${base_radius}" length="${base_len}" />
+          <mesh filename="package://robot_arm/meshes/base.stl" scale="0.01 0.01 0.01"/>
         </geometry>
+        <material name="grey">
+        <color rgba="0.83 0.83 0.83 1.0"/>
+      </material>
     </visual>
     <collision>
-      <geometry>
-        <cylinder length="${base_len}" radius="${base_radius}"/>
-      </geometry>
     </collision>
     </link>
 
   <joint name="axis_to_base" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0"/> 
     <parent link="axis"/>
     <child link="base_link"/>
   </joint>
 
-  <xacro:property name="l1_len" value="1.0" />
-   <xacro:property name="l1_radius" value="0.1" />
   <link name="link1">
     <visual>
-        <origin xyz="0 0 ${l1_len/2.0}" rpy="0 0 0" />
-        <geometry>
-        <cylinder radius="${l1_radius}" length="${l1_len}" />
+     <origin xyz="0 0 0" rpy="1.57 0 1.57" />
+        <geometry>  
+         <mesh filename="package://robot_arm/meshes/link1.stl" scale="0.01 0.01 0.01"/>
         </geometry>
+         <material name="grey">
+        <color rgba="0.83 0.83 0.83 1.0"/>
+      </material>
     </visual>
-    <collision>
-      <geometry>
-        <cylinder length="${l1_len}" radius="${l1_radius}"/>
-      </geometry>
-    </collision>
     <inertial>
       <mass value="10"/>
       <inertia ixx="1e-3" ixy="0.0" ixz="0.0" iyy="1e-3" iyz="0.0" izz="1e-3"/>
     </inertial>
   </link>
 
-
    <joint name="base_to_link1" type="revolute">
    <axis xyz="0 0 1"/>
-   <origin xyz="0 0 ${base_len}" rpy="0 0 0"/>
+   <origin xyz="0 0 0.55" rpy="0 0 0"/>
    <limit effort="10" velocity="1" lower="-3.14" upper="3.14"/>
     <parent link="base_link"/>
     <child link="link1"/>
   </joint>
 
-  <xacro:property name="l2_len" value="1.0" />
-  <xacro:property name="l2_radius" value="0.1" />
+ 
   <link name="link2">
     <visual>
-        <origin xyz="${l2_len/2.0} 0 0" rpy="0 1.57 0" />
+        <origin xyz="1 -0.23 0.4" rpy="-1.57 0 1.57" />
         <geometry>
-        <cylinder radius="${l1_radius}" length="${l2_len}" />
+         <mesh filename="package://robot_arm/meshes/link2.stl" scale="0.01 0.01 0.01"/>
         </geometry>
+         <material name="grey">
+        <color rgba="0.83 0.83 0.83 1.0"/>
+      </material>
     </visual>
     <collision>
-      <geometry>
-        <cylinder length="${l2_len}" radius="${l2_radius}"/>
-      </geometry>
     </collision>
     <inertial>
       <mass value="10"/>
@@ -78,24 +71,25 @@
 
    <joint name="link1_to_link2" type="revolute">
    <axis xyz="0 1 0"/>
-   <origin xyz="0 0 ${l1_len}" rpy="0 0 0"/>
+   <origin xyz="0 0 0" rpy="0 0 0"/>
    <limit effort="10" velocity="1" lower="-3.14" upper="3.14"/>
     <parent link="link1"/>
     <child link="link2"/>
   </joint>
 
-  <xacro:property name="l3_len" value="0.3" />
-    <xacro:property name="l3_radius" value="0.1" />
   <link name="link3">
     <visual>
-        <origin xyz="${l3_len/2.0} 0 0" rpy="0 1.57 0" />
+        <origin xyz="0.34 -0.03 0" rpy="-1.57 0 1.57" />
         <geometry>
-        <cylinder radius="${l3_radius}" length="${l3_len}" />
+        <mesh filename="package://robot_arm/meshes/link3.stl" scale="0.01 0.01 0.01"/>
         </geometry>
+         <material name="grey">
+        <color rgba="0.83 0.83 0.83 1.0"/>
+      </material>
     </visual>
     <collision>
-      <geometry>
-        <cylinder length="${l3_len}" radius="${l3_radius}"/>
+       <geometry>
+        <mesh filename="package://robot_arm/meshes/link3.stl" scale="0.01 0.01 0.01"/>
       </geometry>
     </collision>
     <inertial>
@@ -106,24 +100,25 @@
 
    <joint name="link2_to_link3" type="revolute">
    <axis xyz="0 1 0"/>
-   <origin xyz="${l2_len} 0 0" rpy="0 0 0"/>
+   <origin xyz="0.75 0 0.2" rpy="0 0 0"/>
    <limit effort="10" velocity="1" lower="-3.14" upper="3.14"/>
     <parent link="link2"/>
     <child link="link3"/>
   </joint>
 
-  <xacro:property name="l4_len" value="0.3" />
-  <xacro:property name="l4_width" value="0.2" />
   <link name="link4">
     <visual>
-        <origin xyz="${l4_len/2.0} 0 0" rpy="1.57 0 0" />
+        <origin xyz="0.18 -0.05 0" rpy="0 3.14 0" />
         <geometry>
-        <cylinder length="${l4_width}" radius="${l4_len/2}" />
+          <mesh filename="package://robot_arm/meshes/link4.stl" scale="0.01 0.01 0.01"/>
         </geometry>
+         <material name="grey">
+        <color rgba="0.83 0.83 0.83 1.0"/>
+      </material>
     </visual>
     <collision>
       <geometry>
-        <cylinder length="${l4_width}" radius="${l4_len/2}"/>
+        <mesh filename="package://robot_arm/meshes/link4.stl" scale="0.01 0.01 0.01"/>
       </geometry>
     </collision>
     <inertial>
@@ -134,24 +129,25 @@
 
    <joint name="link3_to_link4" type="revolute">
    <axis xyz="1 0 0"/>
-   <origin xyz="${l3_len} 0 0" rpy="0 0 0"/>
+   <origin xyz="0.85 0 0" rpy="0 0 0"/>
    <limit effort="10" velocity="1" lower="-3.14" upper="3.14"/>
     <parent link="link3"/>
     <child link="link4"/>
   </joint>
 
-  <xacro:property name="l5_len" value="0.2" />
-  <xacro:property name="l5_radius" value="0.1" />
   <link name="link5">
     <visual>
-        <origin xyz="0 0 -${l5_len/2.0}" rpy="0 0 0" />
+        <origin xyz="0 0 0" rpy="-1.57 0 1.57" />
         <geometry>
-        <cylinder radius="${l5_radius}" length="${l5_len}" />
+         <mesh filename="package://robot_arm/meshes/link5.stl" scale="0.01 0.01 0.01"/>
         </geometry>
+         <material name="grey">
+        <color rgba="0.83 0.83 0.83 1.0"/>
+      </material>
     </visual>
     <collision>
       <geometry>
-        <cylinder length="${l5_len}" radius="${l5_radius}"/>
+         <mesh filename="package://robot_arm/meshes/link5.stl" scale="0.01 0.01 0.01"/>
       </geometry>
     </collision>
     <inertial>
@@ -162,7 +158,7 @@
 
   <joint name="link4_to_link5_pitch" type="revolute">
    <axis xyz="0 1 0"/>
-   <origin xyz="${l4_len} 0 0" rpy="0 0 0"/>
+   <origin xyz="0.3 0 0" rpy="0 0 0"/>
    <limit effort="10" velocity="1" lower="-3.14" upper="3.14"/>
     <parent link="link4"/>
     <child link="link5"/>s
@@ -177,7 +173,7 @@
 
   <joint name="link4_to_link5_roll" type="revolute">
    <axis xyz="0 0 1"/>
-   <origin xyz="0 0 0" rpy="0 0 0"/>
+   <origin xyz="0 0 -0.40" rpy="0 0 0"/>
    <limit effort="10" velocity="1" lower="-3.14" upper="3.14"/>
     <parent link="link5"/>
     <child link="link5_roll"/>
@@ -187,7 +183,7 @@
   </link>
 
   <joint name="link5_to_end" type="fixed">
-   <origin xyz="0 0 -${l5_len}" rpy="0 0 0"/>
+   <origin xyz="0 0 0" rpy="0 0 0"/>
     <parent link="link5_roll"/>
     <child link="end_effector"/>
   </joint>

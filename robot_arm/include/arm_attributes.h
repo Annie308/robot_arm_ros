@@ -4,12 +4,12 @@
 
 //Make these parameters!!!!
 //----------------------
-inline extern const double base = 0.5;
-inline extern const double l1 = 1.0; 
-inline extern const double l2 = 1.0;
-inline extern const double l3 = 0.3;
+inline extern const double base = 0.38;
+inline extern const double l1 = 0.62; 
+inline extern const double l2 = 0.75;
+inline extern const double l3 = 0.85;
 inline extern const double l4 = 0.3;
-inline extern const double l5 = 0.2;
+inline extern const double l5 = 0.4;
 //---------------------
 
 inline extern const double PI = 3.14159265358979323846f;
