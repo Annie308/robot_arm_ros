@@ -43,8 +43,9 @@ class StatePublisher : public rclcpp::Node{
             [this](){return std::bind(&StatePublisher::topic_callback, this,  std::placeholders::_1);};
             subscription_timer_ = this->create_wall_timer(500ms, subscriber_timer_callback);
 
-            angles_vec.resize(6, 0.);
+            angles_pub.resize(6, 0.);
             angles_rec.resize(6, 0.);
+            prev_angles_rec = angles_rec;
         }
 
         void publish();
@@ -64,9 +65,12 @@ class StatePublisher : public rclcpp::Node{
 	rclcpp::TimerBase::SharedPtr publisher_timer_;
 	rclcpp::TimerBase::SharedPtr subscription_timer_;
 
+    const double degree=8.*M_PI/180.0;
+    
     std::vector<double> angles_rec;     //angles received
-    const double degree=2.*M_PI/180.0;
-    std::vector<double> angles_vec;     //angles to publish
+    std::vector<double> angles_pub;     //angles to publish
+    std::vector<double> prev_angles_rec;    //previously received angles
+
     double r1, r2, r3, r4, r5, r6; 
     
 };
@@ -94,33 +98,33 @@ void StatePublisher::publish(){
     // axis is defined in r2d2.urdf.xml file and it is the base coordinate of model
     t.child_frame_id="axis";
 
-    double tol = 0.9*degree;
+    double tol = 1.2*degree;
 
-    for (size_t i=0; i< angles_vec.size(); i++){
-        if (std::fabs(angles_vec[i] - angles_rec[i]) > tol){        //sweep to the desired angle
-            if (angles_rec[i]< 0){
-                angles_vec[i] -= degree;
-            }else {
-                angles_vec[i] += degree;
+    for (size_t i=0; i< angles_pub.size(); i++){
+        if (std::fabs(angles_pub[i] - angles_rec[i]) > tol){        //sweep to the desired angle
+            if (angles_pub[i] < angles_rec[i] ){
+                angles_pub[i] += degree;
+            }else if(angles_pub[i] > angles_rec[i]) {
+                angles_pub[i] -= degree;
             }
         }else{
-           //s angles_vec[i] = 0;                                                      //sweep back after reaching the angle
+           angles_pub[i] = angles_rec[i];                                             
         }
     }
 
-    r1 = angles_vec[0];
-    r2 = angles_vec[1];
-    r3 = angles_vec[2];
-    r4 = angles_vec[3];
-    r5 = angles_vec[4];
-    r6 = angles_vec[5];
+    r1 = angles_pub[0];
+    r2 = angles_pub[1];
+    r3 = angles_pub[2];
+    r4 = angles_pub[3];
+    r5 = angles_pub[4];
+    r6 = angles_pub[5];
 
     // send message
     broadcaster->sendTransform(t);
     joint_pub_->publish(joint_state);
 
-    for (size_t i =0; i< angles_vec.size(); i++){
-        RCLCPP_INFO(this->get_logger(),"Publishing angle %zu: %lf",i, angles_vec[i]);
+    for (size_t i =0; i< angles_pub.size(); i++){
+        RCLCPP_INFO(this->get_logger(),"Publishing angle %zu: %lf",i, angles_pub[i]);
     }
 }
 

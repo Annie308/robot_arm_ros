@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Joint Control</title>
+    <style>
+        body {
+            font-family: sans-serif;
+        }
+
+        .joint {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>WebSocket Joint Control</h1>
+
+    <div class="joint">
+        <label>
+            Joint 1:
+            <input type="range"
+                   id="joint1"
+                   min="0"
+                   max="180"
+                   value="90"
+                   oninput="updateValue('joint1')" />
+            <span id="joint1Val">90</span>°
+        </label>
+        <button onclick="sendSlider('joint1')">Send</button>
+        <ul id="j1"></ul>
+    </div>
+
+    <div class="joint">
+        <label>
+            Joint 2:
+            <input type="range"
+                   id="joint2"
+                   min="-90"
+                   max="90"
+                   value="0"
+                   oninput="updateValue('joint2')" />
+            <span id="joint2Val">0</span>°
+        </label>
+        <button onclick="sendSlider('joint2')">Send</button>
+        <ul id="j2"></ul>
+    </div>
+
+    <div class="joint">
+        <label>
+            Joint 3:
+            <input type="range"
+                   id="joint3"
+                   min="-90"
+                   max="90"
+                   value="0"
+                   oninput="updateValue('joint3')" />
+            <span id="joint3Val">0</span>°
+        </label>
+        <button onclick="sendSlider('joint3')">Send</button>
+        <ul id="j3"></ul>
+    </div>
+
+    <div class="joint">
+        <label>
+            Joint 4:
+            <input type="range"
+                   id="joint4"
+                   min="0"
+                   max="180"
+                   value="90"
+                   oninput="updateValue('joint4')" />
+            <span id="joint4Val">90</span>°
+        </label>
+        <button onclick="sendSlider('joint4')">Send</button>
+        <ul id="j4"></ul>
+    </div>
+
+    <div class="joint">
+        <label>
+            Joint 5:
+            <input type="range"
+                   id="joint5"
+                   min="0"
+                   max="180"
+                   value="0"
+                   oninput="updateValue('joint5')" />
+            <span id="joint5Val">0</span>°
+        </label>
+        <button onclick="sendSlider('joint5')">Send</button>
+        <ul id="j5"></ul>
+    </div>
+
+    <div class="joint">
+        <label>
+            Joint 6:
+            <input type="range"
+                   id="joint6"
+                   min="0"
+                   max="180"
+                   value="90"
+                   oninput="updateValue('joint6')" />
+            <span id="joint6Val">90</span>°
+        </label>
+        <button onclick="sendSlider('joint6')">Send</button>
+        <ul id="j6"></ul>
+    </div>
+
+    <script>
+        const ws = new WebSocket("ws://localhost:8000/ws");
+
+        ws.onopen = () => console.log("WebSocket connected");
+        ws.onerror = (e) => console.error("WebSocket error", e);
+        ws.onclose = () => console.log("WebSocket closed");
+
+        ws.onmessage = (event) => {
+            const [joint, value] = event.data.split(":");
+
+            const ulMap = {
+                joint1: document.getElementById("j1"),
+                joint2: document.getElementById("j2"),
+                joint3: document.getElementById("j3"),
+                joint4: document.getElementById("j4"),
+                joint5: document.getElementById("j5"),
+                joint3: document.getElementById("j6"),
+            };
+
+            if (ulMap[joint]) {
+                const li = document.createElement("li");
+                li.textContent = value;
+                ulMap[joint].appendChild(li);
+            }
+        };
+
+        // Update the value display as the slider moves
+        function updateValue(joint) {
+            const input = document.getElementById(joint);
+            document.getElementById(joint + "Val").textContent = input.value;
+        }
+
+        // Send the value only when the user clicks "Send"
+        function sendSlider(joint) {
+            const input = document.getElementById(joint);
+            const value = input.value;
+            ws.send(`${joint}:${value}`);
+        }
+    </script>
+</body>
+</html>

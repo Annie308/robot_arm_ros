@@ -23,6 +23,7 @@ Set target node
 4. sends the claw state (as a server) over /claw_state
 */
 
+const int PI = acos(-1);
 using namespace std::chrono_literals;
 using namespace std::placeholders;
 
@@ -77,13 +78,19 @@ public:
             rclcpp::FutureReturnCode::SUCCESS)
         {  
 			joint_angles.clear();
-			auto response = future_result.get()->angles;
+			auto future = future_result.get();
+			auto angles_response = future->angles;
+			auto end_effector_pose = future->end_effector_pose;
            
 			RCLCPP_INFO(this->get_logger(), "Inverse kinematics response received: ");
-			for (auto angle: response){
+			for (auto angle: angles_response){
 				RCLCPP_INFO(this->get_logger(), "%lf ", angle);
 				joint_angles.push_back(angle);
 			}
+
+			RCLCPP_INFO(this->get_logger(), "Arm should reach: %lf, %lf, %lf", end_effector_pose.translation.x,
+			end_effector_pose.translation.y, end_effector_pose.translation.z);
+			
 			return;
         } else {
             RCLCPP_ERROR(this->get_logger(), "Failed to call service get_angles");
@@ -108,7 +115,7 @@ public:
 		request->angle_2 = joint_angles[1];
 		request->angle_3 = joint_angles[2];
 		request->angle_4 = joint_angles[3];
-		request->angle_5 = joint_angles[4];
+		request->angle_5 = PI - fabs(joint_angles[4]);
 		request->angle_6 = joint_angles[5];
 
 		while (!servos_client_ptr_->wait_for_service(5s)) {

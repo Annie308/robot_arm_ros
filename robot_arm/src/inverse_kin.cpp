@@ -28,47 +28,45 @@ Inverse kinematics node
 3. publishes over /arm_angles to microros client and state_publisher 
 
 */
+Eigen::MatrixXd rot1(3, 3);
+Eigen::MatrixXd rot2(3, 3);
+Eigen::MatrixXd rot3(3, 3);
+Eigen::MatrixXd R_roll(3, 3);
+Eigen::MatrixXd R_pitch(3, 3);
+Eigen::MatrixXd R_yaw(3, 3);
 
-static std::tuple<double,double,double> wrist_ik(double t1, double t2, double t3,double roll, double pitch, double yaw) {
-	//First we find R3 from the arm
-	// Rotation about Z
-	Eigen::MatrixXd rot1(3, 3);
+void get_matrices(double t1, double t2, double t3, double roll, double pitch, double yaw) {
+	
 	rot1 << cos(t1), -sin(t1), 0,
 		sin(t1), cos(t1), 0,
 		0, 0, 1;
-
-	//Y
-	Eigen::MatrixXd rot2(3, 3);
+	
 	rot2 << cos(t2), 0, sin(t2),
 		0, 1, 0,
 		-sin(t2), 0, cos(t2);
-	//Y
-	Eigen::MatrixXd rot3(3, 3);
+
 	rot3 << cos(t3), 0, sin(t3),
 		0, 1, 0,
 		-sin(t3), 0, cos(t3);
 
-	Eigen::MatrixXd R_13 = rot1*rot2*rot3;
-
-	//getting desired rotation matrices
-	//X
-	Eigen::MatrixXd R_roll(3, 3);
 	R_roll << 1, 0, 0,
 		0, cos(roll), -sin(roll),
 		0, sin(roll), cos(roll);
-	
-	//Z
-	Eigen::MatrixXd R_pitch(3, 3);
+
 	R_pitch << cos(pitch), 0, sin(pitch),
 		0, 1, 0,
 		-sin(pitch), 0, cos(pitch);
 	
-	//Y
-	Eigen::MatrixXd R_yaw(3, 3);
 	R_yaw << cos(yaw), -sin(yaw), 0,
 		sin(yaw), cos(yaw), 0,
 		0, 0, 1;
+}
 
+static std::tuple<double,double,double> wrist_ik(double t1, double t2, double t3,double roll, double pitch, double yaw) {
+
+	get_matrices(t1, t2, t3, roll, pitch, yaw);
+	//First we find R3 from the arm
+	Eigen::MatrixXd R_13 = rot1*rot2*rot3;
 	//Goal rotations
 	Eigen::MatrixXd R_T =R_roll*R_pitch*R_yaw;
 
@@ -101,11 +99,13 @@ static std::tuple<double,double,double> wrist_ik(double t1, double t2, double t3
 }
 
 static std::tuple<double,double,double> ik(double x, double y, double z) {
+
+	
+	z = z - base - l1;
+	
 	Eigen::Vector3d p_target = Eigen::Vector3d(x, y, z);
 
 	double l3_eff = l3 + l4;
-	
-	p_target = p_target -link1 - base_link;
 
 	//angle away from XY plane
 	double t = atan2(p_target.y(), p_target.x());
@@ -133,11 +133,23 @@ static std::tuple<double,double,double> ik(double x, double y, double z) {
 	cos_t3 = std::min(1.0, std::max(-1.0, cos_t3));						//constraints			
 
 	//prefer the elbow up solution
-	double t2 = phi - acos(cos_t2);				// (-) for elbow down
+	double t2 = -phi - acos(cos_t2);				// (-) for elbow down
 	double t3 = PI - acos(cos_t3);				// (-) for elbow down
 	double t1 = t;
 
 	return std::make_tuple(t1, t2, t3);
+}
+
+Eigen::Vector3d forward_kin(double t1, double t2, double t3, double t4, double t5, double t6){
+	get_matrices(t1, t2, t3, t4, t5, t6);
+
+	Eigen::Vector3d p0 = base_link;
+	Eigen::Vector3d p1 = rot1*link1 + p0;
+	Eigen::Vector3d p2 = rot1*rot2*link2 + p1;
+	Eigen::Vector3d p3 = rot1*rot2*rot3*link3 + p2;
+	Eigen::Vector3d p4 = rot1*rot2*rot3*R_roll*link4+ p3;
+
+	return p4;
 }
 
 class IkServer : public rclcpp::Node
@@ -147,6 +159,7 @@ public:
   IkServer(const rclcpp::NodeOptions & options=rclcpp::NodeOptions())
   	: Node("ik_server", options)
   {	
+
     service_ptr_ = this->create_service<InverseKin>("target_angles", 
 		std::bind(&IkServer::get_result, this, _1, _2)
 	);
@@ -219,10 +232,21 @@ private:
 
 		response->angles = joint_angles;
 
+		Eigen::Vector3d pos_reached = forward_kin(t1, t2, t3, t4, t5, t6);
+		double x_reached = pos_reached.x();
+		double y_reached = pos_reached.y();
+		double z_reached = pos_reached.z();
+
+		response->end_effector_pose.translation.x = x_reached;
+		response->end_effector_pose.translation.y = y_reached;
+		response->end_effector_pose.translation.z = z_reached;
+
 		RCLCPP_INFO(this->get_logger(), "x: %lf\ny: %lf\nz: %lf",
 			request->target.translation.x,request->target.translation.y,request->target.translation.z);
 		RCLCPP_INFO(this->get_logger(), "roll: %lf\nyaw: %lf",
 			request->target.rotation.y,request->target.rotation.z);
+
+		RCLCPP_INFO(this->get_logger(), "Arm will reach: %lf %lf %lf", x_reached, y_reached, z_reached);
 		RCLCPP_INFO(this->get_logger(), "Sending back %zu angles: ", response->angles.size());
 
 		for (size_t i=0; i< response->angles.size(); i++){
@@ -234,8 +258,11 @@ private:
 };
 
 
+
+
 int main(int argc, char ** argv)
-{
+{	
+	
 	rclcpp::init(argc, argv);
 	rclcpp::spin(std::make_shared<IkServer>());
 	rclcpp::shutdown();

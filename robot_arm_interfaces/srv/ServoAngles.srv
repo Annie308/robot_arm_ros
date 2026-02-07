@@ -1,5 +1,10 @@
 #Request
-float64[] angles
+float64 angle_1
+float64 angle_2
+float64 angle_3
+float64 angle_4
+float64 angle_5
+float64 angle_6
 ---
 #Response
 bool success

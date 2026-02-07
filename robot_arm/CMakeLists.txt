@@ -8,12 +8,15 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclpy REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(robot_arm_interfaces REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
+
+ament_python_install_package(${PROJECT_NAME})
 
 #executables
 add_executable(inverse_kin src/inverse_kin.cpp)
@@ -53,6 +56,11 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
+install(PROGRAMS
+  scripts/ws_server.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 install(DIRECTORY 
   urdf
   DESTINATION share/${PROJECT_NAME}/
@@ -67,6 +75,18 @@ install(DIRECTORY
   launch
   DESTINATION share/${PROJECT_NAME}/
 )
+
+install(DIRECTORY
+  scripts
+  DESTINATION share/${PROJECT_NAME}/
+)
+
+install(DIRECTORY 
+  static
+  DESTINATION share/${PROJECT_NAME}/
+)
+
+
 
 ament_export_dependencies(rosidl_default_runtime)
 ament_package()

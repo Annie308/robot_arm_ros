@@ -1,5 +1,5 @@
 # Request
-char claw_state  
+int32 claw_state  
 ---
 # Response
 bool success

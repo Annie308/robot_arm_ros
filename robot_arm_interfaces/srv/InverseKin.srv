@@ -3,3 +3,4 @@ geometry_msgs/Transform target
 ---
 # Response
 float64[] angles
+geometry_msgs/Transform end_effector_pose
